@@ -153,14 +153,36 @@ This guide provides end-to-end instructions for running Grafana, searching trace
 
 ---
 
-### Issue 5: "PostgreSQL Database Connection Terminated / Fatal Pool Error"
-- **Symptom**: Server returns `HTTP 500` with `Connection terminated unexpectedly` or `FATAL: terminating connection`.
-- **Root Cause**: Database pool connection dropped due to PostgreSQL process restart or idle timeout.
-- **Solution / Fix**:
-  Verify PostgreSQL container status on port `31412`:
-  ```bash
-  docker ps | grep auth-service-db
+### Issue 5: "PostgreSQL / AlloyDB Database Connection Terminated / Fatal Pool Error"
+- **Symptom**: Server returns `HTTP 500` with `Connection terminated unexpectedly` or database logs show:
+  ```text
+  WARNING: [g_term_it.cc:163] Memory critically low. Attempting termination of high memory footprint backend to avoid OOM.
+  LOG: STATEMENT: COMMIT ... terminating connection due to administrator command
   ```
+- **Root Cause**: 
+  1. Host memory pressure when multiple database containers (`auth-service-db` and `llmobs-alloydb-db`) run simultaneously.
+  2. AlloyDB Omni's default analytical columnar engine aggressively allocates buffer pools, triggering the internal `g_term_it` OOM watchdog to kill transactions.
+- **Solution / Fix**:
+  1. See [ADR 0007](../adr/0007-alloydb-omni-resource-constraints-and-oltp-tuning.md) for complete architecture details.
+  2. In `auth/docker-compose.yml`, cap memory and disable columnar engine:
+     ```yaml
+     deploy:
+       resources:
+         limits:
+           memory: 4G
+     shm_size: '1gb'
+     environment:
+       - ALLOYDB_ENABLE_COLUMNAR_ENGINE=false
+     command: >
+       postgres
+       -c shared_buffers=512MB
+       -c google_columnar_engine.enabled=off
+       -c max_connections=100
+     ```
+  3. Verify container health and memory usage:
+     ```bash
+     docker stats auth-service-db --no-stream
+     ```
 
 ---
 
