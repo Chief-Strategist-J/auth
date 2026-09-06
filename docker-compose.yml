@@ -45,8 +45,11 @@ services:
       - ALLOYDB_ENABLE_COLUMNAR_ENGINE=false
     command: >
       postgres
-      -c shared_buffers=512MB
+      -c shared_buffers=256MB
       -c google_columnar_engine.enabled=off
+      -c google_ml_integration.enabled=off
+      -c google_db_advisor.enabled=off
+      -c google_storage.replay_prefetcher_enabled=off
       -c max_connections=100
     volumes:
       - auth_db_data:/var/lib/postgresql/data

@@ -35,14 +35,18 @@ observability-auth-service  |   - [RETRY] 0004_add_organization_user_block_soft_
 
 To guarantee deterministic database stability and allow coexistence with other local containers, the following architectural configurations are applied in `auth/docker-compose.yml`:
 
-1. **Disable Google Columnar Engine**:
+1. **Disable Google Columnar, ML Integration & Advisory Extensions**:
    - Environment: `ALLOYDB_ENABLE_COLUMNAR_ENGINE=false`
-   - Postgres flag: `-c google_columnar_engine.enabled=off`
-   - *Impact*: Eliminates analytical vectorized buffer pools, freeing gigabytes of memory and eliminating columnar background workers (`perfsnap`, catalog wait locks).
+   - Postgres flags:
+     - `-c google_columnar_engine.enabled=off`
+     - `-c google_ml_integration.enabled=off`
+     - `-c google_db_advisor.enabled=off`
+     - `-c google_storage.replay_prefetcher_enabled=off`
+   - *Impact*: Eliminates analytical vectorized buffer pools, AI/ML embedding memory reservations (saving 2GB+ RAM), and background workers that trigger proactive `g_term_it` backend terminations.
 
 2. **Shared Buffers Right-Sizing**:
-   - Postgres flag: `-c shared_buffers=512MB`
-   - *Impact*: Replaces dynamic 80% RAM reservation with a fixed, predictable 512MB buffer cache ideal for auth OLTP caching.
+   - Postgres flag: `-c shared_buffers=256MB`
+   - *Impact*: Replaces dynamic 80% RAM reservation with a fixed, predictable 256MB buffer cache ideal for auth OLTP caching.
 
 3. **Connection Ceiling**:
    - Postgres flag: `-c max_connections=100`
@@ -138,8 +142,11 @@ sequenceDiagram
       - ALLOYDB_ENABLE_COLUMNAR_ENGINE=false
     command: >
       postgres
-      -c shared_buffers=512MB
+      -c shared_buffers=256MB
       -c google_columnar_engine.enabled=off
+      -c google_ml_integration.enabled=off
+      -c google_db_advisor.enabled=off
+      -c google_storage.replay_prefetcher_enabled=off
       -c max_connections=100
     volumes:
       - auth_db_data:/var/lib/postgresql/data
