@@ -20,4 +20,4 @@ ENV CHOKIDAR_USEPOLLING=true
 
 EXPOSE 3001
 
-CMD ["npx", "tsx", "watch", "--poll", "src/server.ts"]
+CMD ["npx", "tsx", "watch", "src/server.ts"]
