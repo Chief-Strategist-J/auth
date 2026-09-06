@@ -75,7 +75,14 @@ const server = http.createServer((req, res) => {
         }
       }
 
-      const result = await router.route(method, url, parsedBody, headersRecord);
+      const parsedUrl = new URL(url, 'http://localhost');
+      const pathname = parsedUrl.pathname;
+      const queryParams: Record<string, string> = {};
+      parsedUrl.searchParams.forEach((val, key) => {
+        queryParams[key] = val;
+      });
+
+      const result = await router.route(method, pathname, parsedBody, headersRecord, queryParams);
 
       res.writeHead(result.statusCode, {
         ...AUTH_CONSTANTS.SECURITY_CONFIG.CORS_HEADERS,
