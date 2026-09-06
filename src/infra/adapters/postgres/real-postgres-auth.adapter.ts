@@ -1,4 +1,4 @@
-import { Pool } from 'node_modules/@types/pg';
+import { Pool } from 'pg';
 import { SpanKind } from '@observability/shared-infra';
 import type { AuthRepositoryPort, OrganizationRecord } from '../../../features/auth/repository';
 import type { AuthUserRecord, AuditLogRecord } from '../../../features/auth/types';
