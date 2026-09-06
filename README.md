@@ -26,7 +26,7 @@
 5. [Hexagonal Ports & Adapters Architecture](#-hexagonal-ports--adapters-architecture)
 6. [Organization & User Lifecycle Workflow](#-organization--user-lifecycle-workflow)
 7. [Database Migrations & N-to-N Multi-Tenancy](#-database-migrations--n-to-n-multi-tenancy)
-8. [Master API Reference Table (All 23 Endpoints)](#-master-api-reference-table-all-23-endpoints)
+8. [Master API Reference Table & ADR 0008 (All 34 Endpoints)](./adr/0008-master-api-catalog-parameter-contracts-and-response-envelopes.md)
 9. [Automated Live API Curl Test Suite](#-automated-live-api-curl-test-suite)
 10. [Verified Vitest Test Suite Execution Results](#-verified-vitest-test-suite-execution-results)
 11. [Engineering Feature Roadmap & Pending TODOs](./TODO.md)

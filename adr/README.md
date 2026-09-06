@@ -15,4 +15,6 @@ This directory contains formal Architecture Decision Records (ADRs) and operatio
 | [**0005**](./0005-opentelemetry-end-to-end-auth-tracing-and-middleware.md) | OpenTelemetry End-to-End Authentication Tracing & Middleware | NodeTracerProvider OTLP exporter, traceHttpMiddleware, W3C trace propagation, Tempo integration | Accepted |
 | [**0006**](./0006-kafka-messaging-pipeline-and-distributed-tracing.md) | Kafka Messaging Pipeline & Distributed Tracing Architecture | Centralized Kafka client, Producer/Consumer middleware pipelines, W3C message header propagation | Accepted |
 | [**0007**](./0007-alloydb-omni-resource-constraints-and-oltp-tuning.md) | AlloyDB Omni Resource Constraints, Memory Optimization & OLTP Tuning | Memory limits, disabling columnar engine, shared_buffers sizing, and preventing g_term_it OOM kills | Accepted |
+| [**0008**](./0008-master-api-catalog-parameter-contracts-and-response-envelopes.md) | Master API Catalog, Parameter Contracts & Response Envelopes | Complete reference for all 34 endpoints, schemas, parameters, success/error envelopes, and live curl verification | Accepted |
 | [**Troubleshooting Guide**](../docs/troubleshooting-and-grafana-guide.md) | Troubleshooting & Grafana Tempo Debugging Guide | TraceQL queries, Grafana setup, time-range filtering, error debugging & fixes | Active Guide |
+

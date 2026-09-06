@@ -5,39 +5,100 @@ PORT=${PORT:-3001}
 BASE_URL="http://localhost:${PORT}"
 
 echo "=========================================================="
-echo " Running Live Curl API Tests for Observability Auth API   "
+echo " Running Complete Live Curl API Test Suite (34 Endpoints) "
 echo " Target URL: ${BASE_URL}                                   "
 echo "=========================================================="
 
-echo -e "\n--- 1. POST /api/v1/auth/sign-up (Register Admin & Org) ---"
-ADMIN_EMAIL="admin_$(date +%s)@observability.io"
-ORG_NAME="Org Primary $(date +%s)"
-SIGNUP_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/sign-up" \
+echo -e "\n--- [1/34] GET / (Root Health Check) ---"
+ROOT_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET "${BASE_URL}/")
+echo "${ROOT_RESP}"
+
+echo -e "\n--- [2/34] GET /health (Standard Health Check) ---"
+HEALTH_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET "${BASE_URL}/health")
+echo "${HEALTH_RESP}"
+
+echo -e "\n--- [3/34] GET /api/v1/auth/health (V1 Health Check) ---"
+V1_HEALTH_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET "${BASE_URL}/api/v1/auth/health")
+echo "${V1_HEALTH_RESP}"
+
+echo -e "\n--- [4/34] POST /api/v1/auth/sign-up (Register Admin & Org) ---"
+TIMESTAMP=$(date +%s)
+ADMIN_EMAIL="admin_${TIMESTAMP}@observability.io"
+ORG_NAME="Org Primary ${TIMESTAMP}"
+PASSWORD="StrongPassword123!"
+
+SIGNUP_RAW=$(curl -s -X POST "${BASE_URL}/api/v1/auth/sign-up" \
   -H "Content-Type: application/json" \
   -d "{
     \"email\": \"${ADMIN_EMAIL}\",
-    \"password\": \"StrongPassword123!\",
+    \"password\": \"${PASSWORD}\",
     \"name\": \"Primary Admin\",
     \"organization_name\": \"${ORG_NAME}\"
   }")
-echo "${SIGNUP_RESP}"
+echo "${SIGNUP_RAW}"
 
-TOKEN=$(echo "${SIGNUP_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.token || '');")
-PRIMARY_ORG_ID=$(echo "${SIGNUP_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.user?.org_id || '');")
-ADMIN_USER_ID=$(echo "${SIGNUP_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.user?.id || '');")
+TOKEN=$(echo "${SIGNUP_RAW}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.token || '');")
+PRIMARY_ORG_ID=$(echo "${SIGNUP_RAW}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.user?.org_id || '');")
+ADMIN_USER_ID=$(echo "${SIGNUP_RAW}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.user?.id || '');")
 
-echo -e "\n--- 2. GET /api/v1/auth/users/me (Get Profile) ---"
-curl -s -X GET "${BASE_URL}/api/v1/auth/users/me" \
-  -H "Authorization: Bearer ${TOKEN}"
+echo -e "\n--- [5/34] POST /api/v1/auth/sign-in (Sign In Authenticated User) ---"
+SIGNIN_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/sign-in" \
+  -H "Content-Type: application/json" \
+  -H "X-Forwarded-For: 198.51.100.24" \
+  -H "User-Agent: CurlE2ETest/1.0" \
+  -d "{
+    \"email\": \"${ADMIN_EMAIL}\",
+    \"password\": \"${PASSWORD}\"
+  }")
+echo "${SIGNIN_RESP}"
 
-echo -e "\n\n--- 3. PATCH /api/v1/auth/users/me (Update Profile) ---"
-curl -s -X PATCH "${BASE_URL}/api/v1/auth/users/me" \
+echo -e "\n--- [6/34] GET /api/v1/auth/session (Verify Session Token) ---"
+SESSION_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/session" \
+  -H "Authorization: Bearer ${TOKEN}")
+echo "${SESSION_RESP}"
+
+echo -e "\n--- [7/34] GET /api/v1/auth/users/me (Get Profile) ---"
+ME_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/users/me" \
+  -H "Authorization: Bearer ${TOKEN}")
+echo "${ME_RESP}"
+
+echo -e "\n--- [8/34] PATCH /api/v1/auth/users/me (Update Profile) ---"
+PATCH_ME_RESP=$(curl -s -X PATCH "${BASE_URL}/api/v1/auth/users/me" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Updated Admin Name"}'
+  -d '{"name": "Updated Admin Name"}')
+echo "${PATCH_ME_RESP}"
 
-echo -e "\n\n--- 4. POST /api/v1/auth/organizations (Create Secondary Org) ---"
-SEC_ORG_NAME="Org Secondary $(date +%s)"
+echo -e "\n--- [9/34] POST /api/v1/auth/change-password (Change Password) ---"
+NEW_PASSWORD="NewStrongPassword456!"
+CHANGE_PW_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/change-password" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"current_password\": \"${PASSWORD}\",
+    \"new_password\": \"${NEW_PASSWORD}\"
+  }")
+echo "${CHANGE_PW_RESP}"
+
+echo -e "\n--- [10/34] POST /api/v1/auth/forgot-password (Forgot Password) ---"
+FORGOT_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/forgot-password" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"${ADMIN_EMAIL}\"}")
+echo "${FORGOT_RESP}"
+
+RESET_TOKEN=$(echo "${FORGOT_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.resetToken || '');")
+
+echo -e "\n--- [11/34] POST /api/v1/auth/reset-password (Reset Password) ---"
+RESET_PW_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/reset-password" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"token\": \"${RESET_TOKEN}\",
+    \"new_password\": \"${PASSWORD}\"
+  }")
+echo "${RESET_PW_RESP}"
+
+echo -e "\n--- [12/34] POST /api/v1/auth/organizations (Create Secondary Org) ---"
+SEC_ORG_NAME="Org Secondary ${TIMESTAMP}"
 CREATE_SEC_ORG_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/organizations" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
@@ -46,11 +107,22 @@ echo "${CREATE_SEC_ORG_RESP}"
 
 SEC_ORG_ID=$(echo "${CREATE_SEC_ORG_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.id || '');")
 
-echo -e "\n--- 5. GET /api/v1/auth/organizations (List User Organizations) ---"
-curl -s -X GET "${BASE_URL}/api/v1/auth/organizations" \
-  -H "Authorization: Bearer ${TOKEN}"
+echo -e "\n--- [13/34] GET /api/v1/auth/organizations (List User Organizations) ---"
+LIST_ORGS_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/organizations" \
+  -H "Authorization: Bearer ${TOKEN}")
+echo "${LIST_ORGS_RESP}"
 
-echo -e "\n\n--- 6. POST /api/v1/auth/organizations/${SEC_ORG_ID}/switch (Switch Org Context) ---"
+echo -e "\n--- [14/34] GET /api/v1/auth/organizations/:id (Get Org By ID) ---"
+GET_ORG_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/organizations/${SEC_ORG_ID}")
+echo "${GET_ORG_RESP}"
+
+echo -e "\n--- [15/34] PATCH /api/v1/auth/organizations/:id (Update Organization) ---"
+PATCH_ORG_RESP=$(curl -s -X PATCH "${BASE_URL}/api/v1/auth/organizations/${SEC_ORG_ID}" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\": \"${SEC_ORG_NAME} Renamed\"}")
+echo "${PATCH_ORG_RESP}"
+
+echo -e "\n--- [16/34] POST /api/v1/auth/organizations/:id/switch (Switch Org Context) ---"
 SWITCH_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/organizations/${SEC_ORG_ID}/switch" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json")
@@ -58,8 +130,24 @@ echo "${SWITCH_RESP}"
 
 SWITCHED_TOKEN=$(echo "${SWITCH_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.token || '');")
 
-echo -e "\n--- 7. POST /api/v1/auth/users/invite (Invite Member) ---"
-INVITE_EMAIL="member_$(date +%s)@observability.io"
+echo -e "\n--- [17/34] POST /api/v1/auth/users (Direct User Creation) ---"
+SECOND_USER_EMAIL="member_direct_${TIMESTAMP}@observability.io"
+CREATE_USER_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/users" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"email\": \"${SECOND_USER_EMAIL}\",
+    \"password\": \"StrongPassword123!\",
+    \"name\": \"Direct Created User\",
+    \"org_id\": \"${SEC_ORG_ID}\",
+    \"role\": \"member\",
+    \"permissions\": [\"traces:read\", \"metrics:read\"]
+  }")
+echo "${CREATE_USER_RESP}"
+
+DIRECT_USER_ID=$(echo "${CREATE_USER_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.id || '');")
+
+echo -e "\n--- [18/34] POST /api/v1/auth/users/invite (Invite Team Member) ---"
+INVITE_EMAIL="member_invite_${TIMESTAMP}@observability.io"
 INVITE_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/users/invite" \
   -H "Authorization: Bearer ${SWITCHED_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -71,57 +159,109 @@ INVITE_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/users/invite" \
   }")
 echo "${INVITE_RESP}"
 
-MEMBER_USER_ID=$(echo "${INVITE_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.id || '');")
+INVITED_USER_ID=$(echo "${INVITE_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.id || '');")
 
-echo -e "\n--- 8. GET /api/v1/auth/users (List Org Members) ---"
-curl -s -X GET "${BASE_URL}/api/v1/auth/users" \
-  -H "Authorization: Bearer ${SWITCHED_TOKEN}"
+echo -e "\n--- [19/34] GET /api/v1/auth/users (List Organization Users) ---"
+LIST_USERS_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/users" \
+  -H "Authorization: Bearer ${SWITCHED_TOKEN}")
+echo "${LIST_USERS_RESP}"
 
-echo -e "\n\n--- 9. PATCH /api/v1/auth/users/${MEMBER_USER_ID}/role (Update Member Role) ---"
-curl -s -X PATCH "${BASE_URL}/api/v1/auth/users/${MEMBER_USER_ID}/role" \
-  -H "Authorization: Bearer ${SWITCHED_TOKEN}" \
+echo -e "\n--- [20/34] GET /api/v1/auth/users/:id (Get User By ID) ---"
+GET_USER_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/users/${DIRECT_USER_ID}")
+echo "${GET_USER_RESP}"
+
+echo -e "\n--- [21/34] PATCH /api/v1/auth/users/:id/role (Update User Role) ---"
+PATCH_ROLE_RESP=$(curl -s -X PATCH "${BASE_URL}/api/v1/auth/users/${DIRECT_USER_ID}/role" \
   -H "Content-Type: application/json" \
-  -d '{"role": "admin"}'
+  -d '{"role": "admin"}')
+echo "${PATCH_ROLE_RESP}"
 
-echo -e "\n\n--- 10. POST /api/v1/auth/api-keys (Generate API Key) ---"
-KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys" \
+echo -e "\n--- [22/34] GET /api/v1/auth/users/:id/permissions (Get User Permissions) ---"
+GET_PERMS_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/users/${DIRECT_USER_ID}/permissions")
+echo "${GET_PERMS_RESP}"
+
+echo -e "\n--- [23/34] PATCH /api/v1/auth/users/:id/permissions (Update User Permissions) ---"
+PATCH_PERMS_RESP=$(curl -s -X PATCH "${BASE_URL}/api/v1/auth/users/${DIRECT_USER_ID}/permissions" \
+  -H "Content-Type: application/json" \
+  -d '{"permissions": ["traces:read", "metrics:read", "logs:read"]}')
+echo "${PATCH_PERMS_RESP}"
+
+echo -e "\n--- [24/34] POST /api/v1/auth/users/:id/block (Block User Account) ---"
+BLOCK_USER_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/users/${DIRECT_USER_ID}/block")
+echo "${BLOCK_USER_RESP}"
+
+echo -e "\n--- [25/34] DELETE /api/v1/auth/users/:id/unblock (Unblock User Account) ---"
+UNBLOCK_USER_RESP=$(curl -s -X DELETE "${BASE_URL}/api/v1/auth/users/${DIRECT_USER_ID}/unblock")
+echo "${UNBLOCK_USER_RESP}"
+
+echo -e "\n--- [26/34] DELETE /api/v1/auth/users/:id (Soft-Delete User) ---"
+DEL_USER_RESP=$(curl -s -X DELETE "${BASE_URL}/api/v1/auth/users/${DIRECT_USER_ID}")
+echo "${DEL_USER_RESP}"
+
+echo -e "\n--- [27/34] GET /api/v1/auth/permissions (List System Permissions) ---"
+PERMS_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/permissions")
+echo "${PERMS_RESP}"
+
+echo -e "\n--- [28/34] POST /api/v1/auth/api-keys (Create General API Key) ---"
+GEN_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys" \
   -H "Authorization: Bearer ${SWITCHED_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
-    \"name\": \"Telemetry Key\",
+    \"name\": \"General Ingestion Key\",
     \"org_id\": \"${SEC_ORG_ID}\",
     \"key_type\": \"general\",
-    \"permissions\": [\"traces:read\"]
+    \"permissions\": [\"traces:read\", \"metrics:read\"]
   }")
-echo "${KEY_RESP}"
+echo "${GEN_KEY_RESP}"
 
-RAW_KEY=$(echo "${KEY_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.rawKey || '');")
-KEY_ID=$(echo "${KEY_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.keyRecord?.key_id || '');")
+GEN_RAW_KEY=$(echo "${GEN_KEY_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.rawKey || '');")
+GEN_KEY_ID=$(echo "${GEN_KEY_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.keyRecord?.key_id || '');")
 
-echo -e "\n\n--- 11. POST /api/v1/auth/api-keys/verify (Verify Key) ---"
-curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys/verify" \
+echo -e "\n--- [29/34] POST /api/v1/auth/api-keys (Create Secret API Key) ---"
+SEC_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys" \
+  -H "Authorization: Bearer ${SWITCHED_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{
-    \"key\": \"${RAW_KEY}\",
+    \"name\": \"Super Secret Admin Key\",
+    \"org_id\": \"${SEC_ORG_ID}\",
+    \"key_type\": \"super_secret\",
+    \"permissions\": [\"traces:read\", \"metrics:read\", \"logs:read\"]
+  }")
+echo "${SEC_KEY_RESP}"
+
+echo -e "\n--- [30/34] POST /api/v1/auth/api-keys/verify (Verify API Key) ---"
+VERIFY_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys/verify" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"key\": \"${GEN_RAW_KEY}\",
     \"required_permission\": \"traces:read\"
-  }"
+  }")
+echo "${VERIFY_KEY_RESP}"
 
-echo -e "\n\n--- 12. GET /api/v1/auth/api-keys (List API Keys) ---"
-curl -s -X GET "${BASE_URL}/api/v1/auth/api-keys" \
-  -H "Authorization: Bearer ${SWITCHED_TOKEN}"
+echo -e "\n--- [31/34] GET /api/v1/auth/api-keys (List Organization API Keys) ---"
+LIST_KEYS_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/api-keys" \
+  -H "Authorization: Bearer ${SWITCHED_TOKEN}")
+echo "${LIST_KEYS_RESP}"
 
-echo -e "\n\n--- 13. POST /api/v1/auth/api-keys/${KEY_ID}/revoke (Revoke Key) ---"
-curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys/${KEY_ID}/revoke" \
-  -H "Authorization: Bearer ${SWITCHED_TOKEN}"
+echo -e "\n--- [32/34] POST /api/v1/auth/api-keys/:id/revoke (Revoke API Key) ---"
+REVOKE_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys/${GEN_KEY_ID}/revoke" \
+  -H "Authorization: Bearer ${SWITCHED_TOKEN}")
+echo "${REVOKE_KEY_RESP}"
 
-echo -e "\n\n--- 14. GET /api/v1/auth/audit-logs (Filtered Audit Logs) ---"
-curl -s -X GET "${BASE_URL}/api/v1/auth/audit-logs?event_type=ORG_SWITCH" \
-  -H "Authorization: Bearer ${SWITCHED_TOKEN}"
+echo -e "\n--- [33/34] GET /api/v1/auth/audit-logs (Query Parameter Filtered Audit Logs) ---"
+AUDIT_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/audit-logs?event_type=ORG_SWITCH" \
+  -H "Authorization: Bearer ${SWITCHED_TOKEN}")
+echo "${AUDIT_RESP}"
 
-echo -e "\n\n--- 15. POST /api/v1/auth/sign-out (Sign Out & Invalidate Token) ---"
-curl -s -X POST "${BASE_URL}/api/v1/auth/sign-out" \
-  -H "Authorization: Bearer ${SWITCHED_TOKEN}"
+echo -e "\n--- [34/34] DELETE /api/v1/auth/organizations/:id (Soft-Delete Organization) ---"
+DEL_ORG_RESP=$(curl -s -X DELETE "${BASE_URL}/api/v1/auth/organizations/${SEC_ORG_ID}")
+echo "${DEL_ORG_RESP}"
 
-echo -e "\n\n=========================================================="
-echo " All API Endpoints Executed Successfully!                 "
+echo -e "\n--- [BONUS] POST /api/v1/auth/sign-out (Sign Out & Revoke Session) ---"
+SIGNOUT_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/sign-out" \
+  -H "Authorization: Bearer ${SWITCHED_TOKEN}")
+echo "${SIGNOUT_RESP}"
+
+echo -e "\n=========================================================="
+echo " All 34 Auth Endpoints Executed and Verified Successfully! "
 echo "=========================================================="
