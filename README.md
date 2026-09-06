@@ -29,6 +29,7 @@
 8. [Master API Reference Table (All 23 Endpoints)](#-master-api-reference-table-all-23-endpoints)
 9. [Automated Live API Curl Test Suite](#-automated-live-api-curl-test-suite)
 10. [Verified Vitest Test Suite Execution Results](#-verified-vitest-test-suite-execution-results)
+11. [Engineering Feature Roadmap & Pending TODOs](./TODO.md)
 
 ---
 
