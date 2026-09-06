@@ -34,4 +34,4 @@ COPY --chown=node:node --from=builder /app/packages/node/auth/database/migration
 USER node
 EXPOSE 3001
 
-CMD ["node", "dist/server.mjs"]
+CMD ["node", "--optimize-for-size", "--max-old-space-size=128", "dist/server.mjs"]
