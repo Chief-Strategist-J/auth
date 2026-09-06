@@ -1,0 +1,23 @@
+FROM node:26-alpine
+
+WORKDIR /app
+
+RUN apk add --no-cache bash
+
+COPY design-tokens /app/packages/node/design-tokens
+COPY shared-infra /app/packages/node/shared-infra
+COPY auth /app/packages/node/auth
+
+WORKDIR /app/packages/node/auth
+
+RUN cd /app/packages/node/shared-infra && npm install --no-audit --no-fund
+RUN cd /app/packages/node/auth && npm install --no-audit --no-fund
+
+ENV NODE_ENV=development
+ENV PORT=3001
+ENV WATCHPACK_POLLING=true
+ENV CHOKIDAR_USEPOLLING=true
+
+EXPOSE 3001
+
+CMD ["npx", "tsx", "watch", "src/server.ts"]
