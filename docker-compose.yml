@@ -30,13 +30,23 @@ services:
   auth-db:
     image: google/alloydbomni:latest
     container_name: auth-service-db
-    shm_size: '2gb'
+    shm_size: '1gb'
+    deploy:
+      resources:
+        limits:
+          memory: 4G
     ports:
       - "31412:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=observability_auth
+      - ALLOYDB_ENABLE_COLUMNAR_ENGINE=false
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c google_columnar_engine.enabled=off
+      -c max_connections=100
     volumes:
       - auth_db_data:/var/lib/postgresql/data
     healthcheck:
