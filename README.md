@@ -26,12 +26,11 @@
 5. [Hexagonal Ports & Adapters Architecture](#-hexagonal-ports--adapters-architecture)
 6. [Organization & User Lifecycle Workflow](#-organization--user-lifecycle-workflow)
 7. [Database Migrations & N-to-N Multi-Tenancy](#-database-migrations--n-to-n-multi-tenancy)
-8. [Master API Reference Table & ADR 0008 (All 34 Endpoints)](./adr/0008-master-api-catalog-parameter-contracts-and-response-envelopes.md)
+8. [Architecture Decision Records (ADRs) & Master API Catalog](#-architecture-decision-records-adrs--master-api-catalog)
 9. [Automated Live API Curl Test Suite](#-automated-live-api-curl-test-suite)
 10. [Production Docker Image Run Commands (`chiefj/llm-obs-auth`)](#-production-docker-image-run-commands)
 11. [Verified Vitest Test Suite Execution Results](#-verified-vitest-test-suite-execution-results)
-12. [Architecture Decision Records (ADRs)](./adr/README.md)
-13. [Engineering Feature Roadmap & Pending TODOs](./TODO.md)
+12. [Engineering Feature Roadmap & Pending TODOs](./TODO.md)
 
 ---
 
@@ -174,33 +173,29 @@ All database interactions are 100% data-driven and powered by centralized SQL qu
 
 ---
 
-## 📊 Master API Reference Table (All 23 Endpoints)
+## 📐 Architecture Decision Records (ADRs) & Master API Catalog
 
-| # | Endpoint & Method | Purpose / Scope | cURL Command | Success Response (`HTTP 200 / 201`) |
-|---|---|---|---|---|
-| **1** | `POST /api/v1/auth/sign-up` | Combined register user & organization | `curl -s -X POST http://localhost:3001/api/v1/auth/sign-up -H "Content-Type: application/json" -d '{"email": "admin@acme.io", "password": "StrongPassword123!", "name": "Admin", "organization_name": "Acme Global"}'` | `{"status": "success", "message": "User and organization successfully registered"}` |
-| **2** | `POST /api/v1/auth/sign-in` | Authenticate user & write audit log | `curl -s -X POST http://localhost:3001/api/v1/auth/sign-in -H "Content-Type: application/json" -d '{"email": "admin@acme.io", "password": "StrongPassword123!"}'` | `{"status": "success", "message": "User signed in successfully"}` |
-| **3** | `POST /api/v1/auth/sign-out` | Invalidate session token in Redis denylist | `curl -s -X POST http://localhost:3001/api/v1/auth/sign-out -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "Signed out successfully"}` |
-| **4** | `GET /api/v1/auth/session` | Validate token & check Redis denylist | `curl -s -X GET http://localhost:3001/api/v1/auth/session -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "Session token verified"}` |
-| **5** | `GET /api/v1/auth/organizations` | List all organizations for active user | `curl -s -X GET http://localhost:3001/api/v1/auth/organizations -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "Organizations retrieved"}` |
-| **6** | `POST /api/v1/auth/organizations` | Create standalone multi-tenant organization | `curl -s -X POST http://localhost:3001/api/v1/auth/organizations -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"name": "Acme Secondary"}'` | `{"status": "success", "message": "Organization created successfully"}` |
-| **7** | `GET /api/v1/auth/organizations/:id` | Get single organization details | `curl -s -X GET http://localhost:3001/api/v1/auth/organizations/org_123 -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "Organization retrieved"}` |
-| **8** | `PATCH /api/v1/auth/organizations/:id` | Update organization name/slug | `curl -s -X PATCH http://localhost:3001/api/v1/auth/organizations/org_123 -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"name": "Updated Org"}'` | `{"status": "success", "message": "Organization updated"}` |
-| **9** | `DELETE /api/v1/auth/organizations/:id` | Soft delete organization & cascade details | `curl -s -X DELETE http://localhost:3001/api/v1/auth/organizations/org_123 -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "Organization soft-deleted"}` |
-| **10** | `POST /api/v1/auth/organizations/:id/switch` | Switch active organization & issue fresh scoped JWT | `curl -s -X POST http://localhost:3001/api/v1/auth/organizations/org_123/switch -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "Organization context switched"}` |
-| **11** | `GET /api/v1/auth/users/me` | Get active user's own profile | `curl -s -X GET http://localhost:3001/api/v1/auth/users/me -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "User profile retrieved"}` |
-| **12** | `PATCH /api/v1/auth/users/me` | Update active user's own profile | `curl -s -X PATCH http://localhost:3001/api/v1/auth/users/me -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"name": "New Name"}'` | `{"status": "success", "message": "User profile updated"}` |
-| **13** | `GET /api/v1/auth/users` | List members of caller's organization | `curl -s -X GET http://localhost:3001/api/v1/auth/users -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "Members retrieved"}` |
-| **14** | `POST /api/v1/auth/users` | Create user in specific org | `curl -s -X POST http://localhost:3001/api/v1/auth/users -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"email": "member@acme.io", "password": "StrongPassword123!", "name": "John", "org_id": "org_123"}'` | `{"status": "success", "message": "User created"}` |
-| **15** | `POST /api/v1/auth/users/invite` | Invite user to caller's organization | `curl -s -X POST http://localhost:3001/api/v1/auth/users/invite -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"email": "invited@acme.io", "name": "Alice", "role": "member"}'` | `{"status": "success", "message": "User invited to organization"}` |
-| **16** | `GET /api/v1/auth/users/:id` | Get specific user details by ID | `curl -s -X GET http://localhost:3001/api/v1/auth/users/usr_123 -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "User retrieved"}` |
-| **17** | `POST /api/v1/auth/users/:id/block` | Block user access | `curl -s -X POST http://localhost:3001/api/v1/auth/users/usr_123/block -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "User blocked successfully"}` |
-| **18** | `DELETE /api/v1/auth/users/:id/unblock` | Unblock user access | `curl -s -X DELETE http://localhost:3001/api/v1/auth/users/usr_123/unblock -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "User unblocked successfully"}` |
-| **19** | `PATCH /api/v1/auth/users/:id/role` | Update user role | `curl -s -X PATCH http://localhost:3001/api/v1/auth/users/usr_123/role -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"role": "admin"}'` | `{"status": "success", "message": "User role updated"}` |
-| **20** | `GET /api/v1/auth/users/:id/permissions` | Get user permission list | `curl -s -X GET http://localhost:3001/api/v1/auth/users/usr_123/permissions -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "User permissions retrieved"}` |
-| **21** | `PATCH /api/v1/auth/users/:id/permissions` | Update user permission list | `curl -s -X PATCH http://localhost:3001/api/v1/auth/users/usr_123/permissions -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"permissions": ["traces:read"]}'` | `{"status": "success", "message": "User permissions updated"}` |
-| **22** | `GET /api/v1/auth/api-keys` | List organization API keys | `curl -s -X GET http://localhost:3001/api/v1/auth/api-keys -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "API keys retrieved"}` |
-| **23** | `GET /api/v1/auth/audit-logs` | Fetch sign-in audit logs with filters | `curl -s -X GET "http://localhost:3001/api/v1/auth/audit-logs?event_type=USER_SIGNIN" -H "Authorization: Bearer <TOKEN>"` | `{"status": "success", "message": "Audit logs retrieved"}` |
+All architecture specifications, production tuning parameters, data models, and API contracts are formally governed by our **Architecture Decision Records (ADRs)** located in [`auth/adr/`](./adr/README.md).
+
+The complete reference for all **34 API endpoints** — including request parameters, validation schemas, HTTP success/error envelopes, and executable cURL commands — is documented in [**ADR 0008: Master API Catalog**](./adr/0008-master-api-catalog-parameter-contracts-and-response-envelopes.md).
+
+### Architecture Decision Records Index
+
+| Document | Title | Scope / Key Focus | Status |
+|---|---|---|---|
+| [**ADR 0001**](./adr/0001-hexagonal-architecture-and-rule-engine-router.md) | Hexagonal Architecture & Declarative Rule Engine Router | Ports & Adapters separation, Rule Engine route matching, OpenTelemetry span wrapping | Accepted |
+| [**ADR 0002**](./adr/0002-authentication-user-registration-and-signin-flow.md) | Sign-Up, Sign-In, Argon2id Hashing & Audit Logging | Dual-phase authentication flow, Argon2id hash validation, Audit trail capture, Full Call Stack | Accepted |
+| [**ADR 0003**](./adr/0003-multi-tenant-organization-switching-and-rls.md) | N-to-N Multi-Tenancy & Org Context Switching | Row-Level Security (RLS), multi-tenant org switching, JWT claim re-issuance | Accepted |
+| [**ADR 0004**](./adr/0004-session-revocation-redis-token-denylist.md) | Redis Token Denylist & Session Lifetime Management | Server-side JWT session invalidation, Redis O(1) denylist lookup, 401 auto-logout | Accepted |
+| [**ADR 0005**](./adr/0005-opentelemetry-end-to-end-auth-tracing-and-middleware.md) | OpenTelemetry End-to-End Authentication Tracing & Middleware | NodeTracerProvider OTLP exporter, traceHttpMiddleware, W3C trace propagation, Tempo integration | Accepted |
+| [**ADR 0006**](./adr/0006-kafka-messaging-pipeline-and-distributed-tracing.md) | Kafka Messaging Pipeline & Distributed Tracing Architecture | Centralized Kafka client, Producer/Consumer middleware pipelines, W3C message header propagation | Accepted |
+| [**ADR 0007**](./adr/0007-alloydb-omni-resource-constraints-and-oltp-tuning.md) | AlloyDB Omni Resource Constraints, Memory Optimization & OLTP Tuning | Memory limits, disabling columnar engine, shared_buffers sizing, and preventing g_term_it OOM kills | Accepted |
+| [**ADR 0008**](./adr/0008-master-api-catalog-parameter-contracts-and-response-envelopes.md) | Master API Catalog, Parameter Contracts & Response Envelopes | Complete reference for all 34 endpoints, schemas, parameters, success/error envelopes, and live curl verification | Accepted |
+| [**ADR 0009**](./adr/0009-docker-production-image-optimization-tree-shaking-and-v8-memory-tuning.md) | Docker Production Image Optimization, Tree-Shaking & V8 Memory Tuning | Multi-stage build, esbuild tree-shaking, node:26-alpine preservation, -99% app layer, 32MB RAM, and Docker Hub deployment | Accepted |
+| [**Troubleshooting Guide**](./docs/troubleshooting-and-grafana-guide.md) | Troubleshooting & Grafana Tempo Debugging Guide | TraceQL queries, Grafana setup, time-range filtering, error debugging & fixes | Active Guide |
+
+👉 **For the complete catalog of all 34 endpoints and sample curl requests, see [ADR 0008: Master API Catalog](./adr/0008-master-api-catalog-parameter-contracts-and-response-envelopes.md).**
+
 
 ---
 
