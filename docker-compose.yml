@@ -30,6 +30,7 @@ services:
   auth-db:
     image: google/alloydbomni:latest
     container_name: auth-service-db
+    shm_size: '2gb'
     ports:
       - "31412:5432"
     environment:
