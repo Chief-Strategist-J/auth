@@ -10,6 +10,12 @@ export class AuthError extends Error {
   }
 }
 
+export class UnauthorizedError extends AuthError {
+  constructor(message = 'Missing or invalid Authorization header') {
+    super(message, 'UNAUTHORIZED', 401);
+  }
+}
+
 export class InvalidCredentialsError extends AuthError {
   constructor() {
     super('Invalid email or password credentials', 'INVALID_CREDENTIALS', 401);

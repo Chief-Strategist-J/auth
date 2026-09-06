@@ -1,5 +1,5 @@
 import { ZodError } from '@observability/shared-infra';
-import { AuthError, ValidationError } from './auth.errors';
+import { AuthError, ValidationError, UnauthorizedError } from './auth.errors';
 
 export interface StandardApiResponse<T = unknown> {
   status: 'success' | 'error';
@@ -67,6 +67,10 @@ export function createErrorResponse(err: unknown): { statusCode: number; payload
   }
   if (rawMessage.includes('Insufficient permission')) {
     const authErr = new AuthError(rawMessage, 'INSUFFICIENT_PERMISSION', 403);
+    return createErrorResponse(authErr);
+  }
+  if (rawMessage.includes('Missing or invalid Authorization header')) {
+    const authErr = new UnauthorizedError(rawMessage);
     return createErrorResponse(authErr);
   }
   if (rawMessage.includes('foreign key constraint') || rawMessage.includes('auth_api_keys_org_id_fkey')) {
