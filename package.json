@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",
     "test:allure": "vitest run --config vitest.config.ts --reporter=html",
-    "test:curl": "./tests/e2e/test-curl-endpoints.sh"
+    "test:curl": "./tests/e2e/test-curl-endpoints.sh",
+    "install:deps": "./scripts/install.sh"
   },
   "dependencies": {
     "@chief-strategist-j/shared-infra": "^1.0.0",
