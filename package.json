@@ -20,7 +20,7 @@
     "install:deps": "./scripts/install.sh"
   },
   "dependencies": {
-    "@chief-strategist-j/shared-infra": "^1.0.0",
+    "@chief-strategist-j/shared-infra": "^1.0.5",
     "pg": "^8.23.0",
     "zod": "^3.24.0"
   },
