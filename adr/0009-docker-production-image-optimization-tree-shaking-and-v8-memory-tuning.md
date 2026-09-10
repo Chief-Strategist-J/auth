@@ -28,7 +28,7 @@ To achieve maximum compression, download efficiency, and low memory consumption 
 
 ### 1. Multi-Stage Build Architecture
 - **Stage 1 (`builder`)**:
-  - Uses `node:26-alpine` with `pnpm` and build tools to compile TypeScript and bundle `@observability/shared-infra` into a standalone production artifact.
+  - Uses `node:26-alpine` with `pnpm` and build tools to compile TypeScript and bundle `@chief-strategist-j/shared-infra` into a standalone production artifact.
   - Bundles the application using `esbuild`:
     - Platform: `node`
     - Target: `node26`
@@ -65,7 +65,7 @@ flowchart TD
     classDef hub fill:#581c87,stroke:#c084fc,stroke-width:2px,color:#faf5ff;
 
     subgraph Stage1["Stage 1: Multi-Stage Builder (node:26-alpine)"]
-        SrcCode["Auth Source Code (src/** + @observability/shared-infra)"]:::builder
+        SrcCode["Auth Source Code (src/** + @chief-strategist-j/shared-infra)"]:::builder
         DevPkgs["Tooling: pnpm, TypeScript, Vitest, @types (220 MB)"]:::discard
         EsbuildEngine["esbuild Bundler Engine (--bundle --format=esm --target=node26)"]:::builder
         ESMShim["Banner Injection (createRequire for CJS/ESM Interop)"]:::builder

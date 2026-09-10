@@ -1,1 +1,1 @@
-export { BaseTracedKafkaHandler } from '@observability/shared-infra/tracing';
+export { BaseTracedKafkaHandler } from '@chief-strategist-j/shared-infra/tracing';

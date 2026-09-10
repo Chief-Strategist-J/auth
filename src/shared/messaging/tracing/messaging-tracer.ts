@@ -1,4 +1,4 @@
-import { CentralMessagingTracer } from '@observability/shared-infra/tracing';
+import { CentralMessagingTracer } from '@chief-strategist-j/shared-infra/tracing';
 
 export class MessagingTracer {
   public static createProducerSpan(topic: string, eventName: string, headers?: any) {

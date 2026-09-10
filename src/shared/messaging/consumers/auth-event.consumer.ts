@@ -1,4 +1,4 @@
-import { createKafkaClient, CentralizedKafkaClient, TypedEventConsumer } from '@observability/shared-infra';
+import { createKafkaClient, CentralizedKafkaClient, TypedEventConsumer } from '@chief-strategist-j/shared-infra';
 import { AUTH_KAFKA_TOPICS } from '../topics/auth-topics';
 import { AuthEventHandlerRegistry } from '../handlers/auth-event.handlers';
 

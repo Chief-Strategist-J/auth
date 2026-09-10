@@ -1,4 +1,4 @@
-import { createKafkaClient, CentralizedKafkaClient, KafkaHeaders, KafkaEvent, TypedEventProducer } from '@observability/shared-infra';
+import { createKafkaClient, CentralizedKafkaClient, KafkaHeaders, KafkaEvent, TypedEventProducer } from '@chief-strategist-j/shared-infra';
 import { AUTH_KAFKA_TOPICS } from '../topics/auth-topics';
 
 export class AuthEventProducer {

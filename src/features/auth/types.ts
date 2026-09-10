@@ -1,4 +1,4 @@
-import { z } from '@observability/shared-infra';
+import { z } from '@chief-strategist-j/shared-infra';
 import {
   SignUpInputSchema,
   SignInInputSchema,

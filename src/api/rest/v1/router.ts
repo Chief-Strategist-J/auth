@@ -1,4 +1,4 @@
-import { SpanStatusCode } from '@observability/shared-infra';
+import { SpanStatusCode } from '@chief-strategist-j/shared-infra';
 import type { AuthService } from '../../../features/auth/service';
 import { handleVerifySession } from './handlers/session.handler';
 import { withSpan } from '../../../infra/tracing/tracer';

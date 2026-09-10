@@ -1,4 +1,4 @@
-import { runWithHttpTracing as runWithCoreHttpTracing } from '@observability/shared-infra/tracing';
+import { runWithHttpTracing as runWithCoreHttpTracing } from '@chief-strategist-j/shared-infra/tracing';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { AUTH_CONSTANTS } from '../../shared/constants/auth.constants';
 

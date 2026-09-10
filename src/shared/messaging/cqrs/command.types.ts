@@ -1,4 +1,4 @@
-import { RequestContext } from '@observability/shared-infra';
+import { RequestContext } from '@chief-strategist-j/shared-infra';
 
 export interface BaseCommand {
   context?: Partial<RequestContext>;

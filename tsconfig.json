@@ -21,10 +21,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "paths": {
-      "@observability/shared-infra": ["../shared-infra/src/index.ts"],
-      "@observability/shared-infra/*": ["../shared-infra/src/*"]
+      "@chief-strategist-j/shared-infra": ["../shared-infra/dist/index.d.ts"],
+      "@chief-strategist-j/shared-infra/*": ["../shared-infra/dist/*"]
     },
     "noEmit": true
   },

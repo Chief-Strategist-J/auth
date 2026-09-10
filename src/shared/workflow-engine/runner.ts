@@ -1,4 +1,4 @@
-import { trace } from '@observability/shared-infra';
+import { trace } from '@chief-strategist-j/shared-infra';
 import { stepRegistry } from './step-registry';
 
 export interface WorkflowStep {

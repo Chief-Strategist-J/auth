@@ -1,4 +1,4 @@
-import { z } from '@observability/shared-infra';
+import { z } from '@chief-strategist-j/shared-infra';
 import { AUTH_CONSTANTS } from '../constants/auth.constants';
 
 export const UserRoleSchema = z.enum([

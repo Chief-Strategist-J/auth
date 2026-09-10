@@ -1,4 +1,4 @@
-import { ZodError } from '@observability/shared-infra';
+import { ZodError } from '@chief-strategist-j/shared-infra';
 import { AuthError, ValidationError, UnauthorizedError } from './auth.errors';
 
 export interface StandardApiResponse<T = unknown> {

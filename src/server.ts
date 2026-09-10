@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { ServiceRegistryManager, HTTP_CONSTANTS } from '@observability/shared-infra';
+import { ServiceRegistryManager, HTTP_CONSTANTS } from '@chief-strategist-j/shared-infra';
 import { AuthService } from './features/auth/service';
 import { AuthRestV1Router } from './api/rest/v1/router';
 import { AlloyDBOmniAuthAdapter } from './infra/adapters/postgres/alloydb-omni-auth.adapter';

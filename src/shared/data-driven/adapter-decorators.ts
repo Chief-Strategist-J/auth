@@ -1,4 +1,4 @@
-import { trace } from '@observability/shared-infra';
+import { trace } from '@chief-strategist-j/shared-infra';
 
 export function withRetry<T extends (...args: any[]) => Promise<any>>(
   fn: T,
