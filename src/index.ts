@@ -26,3 +26,4 @@ export * from './infra/adapters/proxy/envoy.adapter';
 export * from './infra/tracing/tracer';
 export * from './infra/tracing/middleware';
 export * from './api/rest/v1/router';
+export * from './infra/adapters/redis/redis-cache.adapter';

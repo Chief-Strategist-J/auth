@@ -66,7 +66,7 @@ paths:
               $ref: '#/components/schemas/SignInRequest'
       responses:
         '200':
-          description: Successful authentication with audit log recorded
+          description: Successful authentication with audit log recorded and JTI assigned
           content:
             application/json:
               schema:
@@ -77,8 +77,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardApiErrorResponse'
+        '423':
+          description: Account locked due to consecutive failed sign-in attempts (ACCOUNT_LOCKED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardApiErrorResponse'
         '429':
-          description: Account locked due to brute-force threshold exceeded
+          description: Rate limit exceeded for IP address window or account lockout threshold (RATE_LIMIT_EXCEEDED / ACCOUNT_LOCKED)
           content:
             application/json:
               schema:
@@ -86,18 +92,18 @@ paths:
 
   /api/v1/auth/sign-out:
     post:
-      summary: Invalidate current JWT session token and add to Redis denylist. Records sign-out audit event.
+      summary: Invalidate current JWT session token by adding its JTI (JWT ID) to the Redis token denylist cache with remaining TTL. Records sign-out audit event.
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Session token invalidated and denylist entry created
+          description: Session token invalidated and JTI denylist entry created in Redis cache
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardApiResponse'
         '401':
-          description: Missing or invalid token
+          description: Missing, expired, or invalid token
           content:
             application/json:
               schema:
@@ -105,22 +111,18 @@ paths:
 
   /api/v1/auth/session:
     get:
-      summary: Verify session token, check Redis denylist, and return user context
+      summary: Verify session token signature and expiration, perform O(1) Redis JTI denylist check, and return verified user context payload.
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Active session payload
+          description: Active session payload with JTI claim
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardApiResponse'
         '401':
-          description: Unauthorized, token expired, or token denylisted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StandardApiErrorResponse'
+          description: Unauthorized, token expired, signature invalid, or token JTI denylisted in Redis cache
 
   /api/v1/auth/organizations:
     get:
@@ -876,6 +878,9 @@ components:
           format: email
         password:
           type: string
+        ip_address:
+          type: string
+          description: Client IP address used for adaptive rate limiting and account lockout evaluation
 
     ResetPasswordRequest:
       type: object

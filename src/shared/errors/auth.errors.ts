@@ -75,3 +75,9 @@ export class ValidationError extends AuthError {
     super(`Validation failed: ${details}`, 'VALIDATION_ERROR', 400);
   }
 }
+
+export class RateLimitExceededError extends AuthError {
+  constructor(message = 'Rate limit exceeded') {
+    super(message, 'RATE_LIMIT_EXCEEDED', 429);
+  }
+}

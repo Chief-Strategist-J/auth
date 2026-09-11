@@ -28,6 +28,7 @@ export const AuthTokenPayloadSchema = z.object({
   org: TenantContextSchema,
   exp: z.number().positive(),
   iat: z.number().positive(),
+  jti: z.string().optional(),
 });
 export type AuthTokenPayload = z.infer<typeof AuthTokenPayloadSchema>;
 

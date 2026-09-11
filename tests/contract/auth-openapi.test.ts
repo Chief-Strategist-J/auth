@@ -27,5 +27,11 @@ describe('Auth OpenAPI Contract Compliance', () => {
     expect(content).toContain('CreateApiKeyRequest');
     expect(content).toContain('VerifyApiKeyRequest');
     expect(content).toContain('X-CSRF-Token');
+    expect(content).toContain('ip_address');
+    expect(content).toContain('ACCOUNT_LOCKED');
+    expect(content).toContain('RATE_LIMIT_EXCEEDED');
+    expect(content).toContain('JTI');
+    expect(content).toContain("'423'");
+    expect(content).toContain("'429'");
   });
 });

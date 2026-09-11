@@ -4,6 +4,8 @@ import { AuthService } from './features/auth/service';
 import { AuthRestV1Router } from './api/rest/v1/router';
 import { AlloyDBOmniAuthAdapter } from './infra/adapters/postgres/alloydb-omni-auth.adapter';
 import { RealPostgresAuthAdapter } from './infra/adapters/postgres/real-postgres-auth.adapter';
+import { RedisCacheAdapter } from './infra/adapters/redis/redis-cache.adapter';
+
 import type { AuthRepositoryPort } from './features/auth/repository';
 import { AuthEventProducer } from './shared/messaging/producers/auth-event.producer';
 import { AuthEventConsumer } from './shared/messaging/consumers/auth-event.consumer';
@@ -41,7 +43,8 @@ authEventConsumer.init().catch((err: any) => {
   console.warn('[kafka-consumer] Operating in fallback mode:', err?.message || err);
 });
 
-export const service = new AuthService(repositoryAdapter, authEventProducer);
+export const cacheAdapter = new RedisCacheAdapter();
+export const service = new AuthService(repositoryAdapter, authEventProducer, cacheAdapter);
 export const router = new AuthRestV1Router(service);
 
 const server = http.createServer((req, res) => {

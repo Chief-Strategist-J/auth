@@ -27,6 +27,10 @@ import { UserAuthDomainService } from './services/user-auth.service';
 import { PasswordDomainService } from './services/password.service';
 import { ApiKeyDomainService } from './services/api-key.service';
 import { AuditLogDomainService } from './services/audit-log.service';
+import type { ICachePort } from '../../shared/ports/cache.interface';
+import { SessionDenylistService } from './services/session-denylist.service';
+import { LoginRateLimiterService } from './services/login-rate-limiter.service';
+
 
 export class AuthService {
   private readonly orgService: OrganizationDomainService;
@@ -39,10 +43,13 @@ export class AuthService {
   constructor(
     repo: AuthRepositoryPort,
     eventProducer?: AuthEventProducer,
+    cache?: ICachePort,
   ) {
     this.orgService = new OrganizationDomainService(repo);
     this.userService = new UserManagementDomainService(repo);
-    this.authService = new UserAuthDomainService(repo, eventProducer);
+    const denylistService = cache ? new SessionDenylistService(cache) : undefined;
+    const rateLimiterService = new LoginRateLimiterService();
+    this.authService = new UserAuthDomainService(repo, eventProducer, denylistService, rateLimiterService);
     this.passwordService = new PasswordDomainService(repo);
     this.apiKeyService = new ApiKeyDomainService(repo);
     this.auditLogService = new AuditLogDomainService(repo);

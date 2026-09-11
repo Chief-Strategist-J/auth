@@ -3,16 +3,20 @@ import type { SignUpInput, SignInInput, AuthUserRecord } from '../types';
 import type { AuthTokenPayload } from '../../../shared/types/auth.types';
 import type { AuthEventProducer } from '../../../shared/messaging/producers/auth-event.producer';
 import { SignUpInputSchema, SignInInputSchema } from '../schema/auth.schema';
-import { UserAlreadyExistsError, OrgAlreadyExistsError, InvalidCredentialsError, UserBlockedError, ValidationError } from '../../../shared/errors/auth.errors';
+import { UserAlreadyExistsError, OrgAlreadyExistsError, InvalidCredentialsError, UserBlockedError, ValidationError, AccountLockedError, RateLimitExceededError } from '../../../shared/errors/auth.errors';
 import { hashPassword, verifyPassword } from '../../../shared/utils/argon2.util';
 import { createToken, verifyToken } from '../../../shared/utils/jwt.util';
 import { AUTH_CONSTANTS } from '../../../shared/constants/auth.constants';
 import { withSpan } from '../../../infra/tracing/tracer';
+import type { SessionDenylistService } from './session-denylist.service';
+import type { LoginRateLimiterService } from './login-rate-limiter.service';
 
 export class UserAuthDomainService {
   constructor(
     private readonly repo: AuthRepositoryPort,
     private readonly eventProducer?: AuthEventProducer,
+    private readonly sessionDenylistService?: SessionDenylistService,
+    private readonly rateLimiterService?: LoginRateLimiterService,
   ) {}
 
   async signUp(input: SignUpInput): Promise<{ token: string; payload: AuthTokenPayload; user: AuthUserRecord }> {
@@ -71,9 +75,21 @@ export class UserAuthDomainService {
 
   async signIn(input: SignInInput): Promise<{ token: string; payload: AuthTokenPayload; user: AuthUserRecord }> {
     const validated = SignInInputSchema.parse(input);
+    const ip = validated.ip_address || '0.0.0.0';
+
+    if (this.rateLimiterService) {
+      const rateLimitCheck = await this.rateLimiterService.checkLoginAllowed(ip, validated.email);
+      if (!rateLimitCheck.allowed) {
+        if (rateLimitCheck.reason === 'ACCOUNT_LOCKED') {
+          throw new AccountLockedError();
+        }
+        throw new RateLimitExceededError();
+      }
+    }
 
     const user = await this.repo.findUserByEmail(validated.email);
     if (!user) {
+      if (this.rateLimiterService) await this.rateLimiterService.recordLoginFailure(ip, validated.email);
       throw new InvalidCredentialsError();
     }
 
@@ -87,7 +103,12 @@ export class UserAuthDomainService {
     });
 
     if (!isValid) {
+      if (this.rateLimiterService) await this.rateLimiterService.recordLoginFailure(ip, validated.email);
       throw new InvalidCredentialsError();
+    }
+
+    if (this.rateLimiterService) {
+      await this.rateLimiterService.recordLoginSuccess(ip, validated.email);
     }
 
     await this.repo.recordAuditLog({
@@ -119,6 +140,12 @@ export class UserAuthDomainService {
 
   async signOut(token: string): Promise<void> {
     const payload = verifyToken(token);
+    
+    if (this.sessionDenylistService && payload.jti) {
+      const ttlMs = (payload.exp * 1000) - Date.now();
+      await this.sessionDenylistService.denyToken(payload.jti, ttlMs > 0 ? ttlMs : 0);
+    }
+    
     await this.repo.addTokenToDenylist(token, payload.exp * 1000);
     await this.repo.recordAuditLog({
       id: `audit_${Math.random().toString(36).substring(2, 9)}`,
@@ -132,8 +159,16 @@ export class UserAuthDomainService {
   }
 
   async validateSession(token: string): Promise<AuthTokenPayload> {
+    const payload = verifyToken(token);
+    
+    if (this.sessionDenylistService && payload.jti) {
+      const isRedisDenylisted = await this.sessionDenylistService.isTokenDenied(payload.jti);
+      if (isRedisDenylisted) throw new ValidationError('Session has been invalidated');
+    }
+    
     const isDenylisted = await this.repo.isTokenDenylisted(token);
     if (isDenylisted) throw new ValidationError('Session has been invalidated');
-    return verifyToken(token);
+    
+    return payload;
   }
 }

@@ -37,6 +37,13 @@ export const AUTH_CONSTANTS = {
     SALT_ROUNDS: 10,
     PASSWORD_MIN_LENGTH: 12,
     PASSWORD_PATTERN: '^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{12,}$',
+    RATE_LIMIT: {
+      MAX_ATTEMPTS_PER_IP: 10,
+      IP_WINDOW_MS: 15 * 60 * 1000,
+      MAX_FAILED_PER_EMAIL: 5,
+      EMAIL_LOCKOUT_MS: 15 * 60 * 1000,
+      EMAIL_CAPTCHA_THRESHOLD: 3,
+    },
   },
 
   ENDPOINTS: {

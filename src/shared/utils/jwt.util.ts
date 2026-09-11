@@ -9,6 +9,7 @@ export function createToken(userId: string, email: string, org: TenantContext, e
     org,
     iat: now,
     exp: now + expiresInSeconds,
+    jti: `jti_${Math.random().toString(36).substring(2, 15)}`,
   };
   const encodedPayload = btoa(JSON.stringify(payload));
   const signature = btoa(`sig_${userId}_${now}`);
