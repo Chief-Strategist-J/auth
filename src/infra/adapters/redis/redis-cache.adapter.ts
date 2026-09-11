@@ -1,7 +1,5 @@
 import type { ICachePort } from '../../../shared/ports/cache.interface';
 
-// Note: A real Redis connection should use `ioredis` when added as a dependency.
-// For now, this is a lightweight in-process adapter implementing ICachePort.
 export class RedisCacheAdapter implements ICachePort {
   private cache = new Map<string, { value: string; expiresAt: number | null }>();
 

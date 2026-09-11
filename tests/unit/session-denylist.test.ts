@@ -23,7 +23,7 @@ describe('SessionDenylistService', () => {
   });
 
   it('should allow a token to expire from the denylist', async () => {
-    await service.denyToken('temp-token', 50); // 50ms TTL
+    await service.denyToken('temp-token', 50);
     let isDenied = await service.isTokenDenied('temp-token');
     expect(isDenied).toBe(true);
 

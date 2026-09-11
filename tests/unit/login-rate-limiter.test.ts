@@ -48,7 +48,6 @@ describe('LoginRateLimiterService', () => {
     const email = 'ip@example.com';
     const maxIpAttempts = AUTH_CONSTANTS.SECURITY_CONFIG.RATE_LIMIT.MAX_ATTEMPTS_PER_IP;
 
-    // Make max attempts
     for (let i = 0; i < maxIpAttempts; i++) {
       await service.checkLoginAllowed(ip, `user${i}@example.com`);
     }
@@ -69,6 +68,6 @@ describe('LoginRateLimiterService', () => {
     
     const result = await service.checkLoginAllowed(ip, email);
     expect(result.allowed).toBe(true);
-    expect(result.requiresCaptcha).toBeUndefined(); // Should be undefined or false depending on implementation
+    expect(result.requiresCaptcha).toBeUndefined();
   });
 });
