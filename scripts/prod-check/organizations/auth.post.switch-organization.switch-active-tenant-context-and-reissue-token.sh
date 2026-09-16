@@ -7,8 +7,8 @@ if [ -f "${CONFIG_PATH}" ]; then
   source "${CONFIG_PATH}"
 fi
 
-echo "==> [organizations] POST /api/v1/auth/organizations/${TARGET_ORG_ID}/switch -> Switch Active Tenant Context and Reissue Token"
-curl -s -X POST "${AUTH_URL}/api/v1/auth/organizations/${TARGET_ORG_ID}/switch" \
+echo "==> [organizations] POST /api/v1/auth/organizations/${ORG_ID}/switch -> Switch Active Tenant Context and Reissue Token"
+curl -s -X POST "${AUTH_URL}/api/v1/auth/organizations/${ORG_ID}/switch" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "x-request-id: ${X_REQUEST_ID}" \

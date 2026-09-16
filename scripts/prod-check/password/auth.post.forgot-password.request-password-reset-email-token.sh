@@ -19,5 +19,5 @@ curl -s -X POST "${AUTH_URL}/api/v1/auth/forgot-password" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"email\": \"${DEFAULT_EMAIL}\"
+    \"email\": \"${EMAIL}\"
   }" | jq . || true

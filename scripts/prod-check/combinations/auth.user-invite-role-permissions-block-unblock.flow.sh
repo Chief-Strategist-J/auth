@@ -7,19 +7,26 @@ if [ -f "${CONFIG_PATH}" ]; then
   source "${CONFIG_PATH}"
 fi
 
-ADMIN_EMAIL="admin-flow-$(date +%s)@example.com"
-MEMBER_EMAIL="member-flow-$(date +%s)@example.com"
+export X_FORWARDED_FOR="198.51.$((RANDOM % 200 + 10)).$((RANDOM % 200 + 10))"
+ADMIN_EMAIL="admin-flow-$(date +%s)-$((RANDOM % 1000))@example.com"
+MEMBER_EMAIL="member-flow-$(date +%s)-$((RANDOM % 1000))@example.com"
 
 echo "==> STEP 1: REGISTER ADMIN USER & ORGANIZATION ==="
-"${SCRIPT_DIR}/../auth-session/auth.post.sign-up.register-new-user-and-organization.sh" > /dev/null || true
+SIGNUP_RES=$(EMAIL="${ADMIN_EMAIL}" PASSWORD="${DEFAULT_PASSWORD}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-up.register-new-user-and-organization.sh")
+echo "${SIGNUP_RES}"
 
-echo "==> STEP 2: SIGN IN ADMIN USER ==="
-SIGNIN_RES=$(EMAIL="${ADMIN_EMAIL}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
-echo "${SIGNIN_RES}"
-
-EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
+EXTRACTED_TOKEN=$(echo "${SIGNUP_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
 if [ -n "${EXTRACTED_TOKEN}" ] && [ "${EXTRACTED_TOKEN}" != "null" ]; then
   export TOKEN="${EXTRACTED_TOKEN}"
+fi
+
+echo "==> STEP 2: SIGN IN ADMIN USER ==="
+SIGNIN_RES=$(EMAIL="${ADMIN_EMAIL}" PASSWORD="${DEFAULT_PASSWORD}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
+echo "${SIGNIN_RES}"
+
+EXTRACTED_SIGNIN_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
+if [ -n "${EXTRACTED_SIGNIN_TOKEN}" ] && [ "${EXTRACTED_SIGNIN_TOKEN}" != "null" ]; then
+  export TOKEN="${EXTRACTED_SIGNIN_TOKEN}"
 fi
 
 echo "==> STEP 3: LIST ORGANIZATION MEMBERS ==="
@@ -31,6 +38,7 @@ echo "${INVITE_RES}"
 
 EXTRACTED_USER_ID=$(echo "${INVITE_RES}" | sed -n '/^{/,$p' | jq -r '.data.id // .data.user_id // empty' || true)
 if [ -n "${EXTRACTED_USER_ID}" ] && [ "${EXTRACTED_USER_ID}" != "null" ]; then
+  export USER_ID="${EXTRACTED_USER_ID}"
   export TARGET_USER_ID="${EXTRACTED_USER_ID}"
 fi
 

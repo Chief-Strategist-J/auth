@@ -20,10 +20,10 @@ curl -s -X POST "${AUTH_URL}/api/v1/auth/users" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"email\": \"newuser@example.com\",
-    \"password\": \"${DEFAULT_PASSWORD}\",
-    \"name\": \"New User\",
-    \"org_id\": \"${TARGET_ORG_ID}\",
-    \"role\": \"member\",
+    \"email\": \"${EMAIL}\",
+    \"password\": \"${PASSWORD}\",
+    \"name\": \"${NAME}\",
+    \"org_id\": \"${ORG_ID}\",
+    \"role\": \"${ROLE}\",
     \"permissions\": [\"traces:read\", \"metrics:read\"]
   }" | jq . || true

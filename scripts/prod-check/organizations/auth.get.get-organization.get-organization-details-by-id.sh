@@ -7,8 +7,8 @@ if [ -f "${CONFIG_PATH}" ]; then
   source "${CONFIG_PATH}"
 fi
 
-echo "==> [organizations] GET /api/v1/auth/organizations/${TARGET_ORG_ID} -> Get Organization Details By ID"
-curl -s -X GET "${AUTH_URL}/api/v1/auth/organizations/${TARGET_ORG_ID}" \
+echo "==> [organizations] GET /api/v1/auth/organizations/${ORG_ID} -> Get Organization Details By ID"
+curl -s -X GET "${AUTH_URL}/api/v1/auth/organizations/${ORG_ID}" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "x-request-id: ${X_REQUEST_ID}" \

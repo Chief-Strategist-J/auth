@@ -20,6 +20,6 @@ curl -s -X POST "${AUTH_URL}/api/v1/auth/organizations" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"name\": \"${DEFAULT_ORG_NAME}\",
-    \"slug\": \"${DEFAULT_ORG_SLUG}\"
+    \"name\": \"${ORG_NAME}\",
+    \"slug\": \"${ORG_SLUG}\"
   }" | jq . || true

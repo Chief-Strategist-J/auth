@@ -19,9 +19,9 @@ curl -s -X POST "${AUTH_URL}/api/v1/auth/sign-up" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"email\": \"${DEFAULT_EMAIL}\",
-    \"password\": \"${DEFAULT_PASSWORD}\",
-    \"name\": \"${DEFAULT_USER_NAME}\",
-    \"organization_name\": \"${DEFAULT_ORG_NAME}\",
-    \"role\": \"${DEFAULT_ROLE}\"
+    \"email\": \"${EMAIL}\",
+    \"password\": \"${PASSWORD}\",
+    \"name\": \"${NAME}\",
+    \"organization_name\": \"${ORG_NAME}\",
+    \"role\": \"${ROLE}\"
   }" | jq . || true

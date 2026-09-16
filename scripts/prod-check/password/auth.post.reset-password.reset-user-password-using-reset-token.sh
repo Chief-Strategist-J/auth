@@ -20,5 +20,5 @@ curl -s -X POST "${AUTH_URL}/api/v1/auth/reset-password" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
     \"token\": \"${RESET_TOKEN}\",
-    \"new_password\": \"${DEFAULT_NEW_PASSWORD}\"
+    \"new_password\": \"${NEW_PASSWORD}\"
   }" | jq . || true

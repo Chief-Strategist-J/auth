@@ -19,8 +19,8 @@ curl -s -X POST "${AUTH_URL}/api/v1/auth/sign-in" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"email\": \"${DEFAULT_EMAIL}\",
-    \"password\": \"${DEFAULT_PASSWORD}\",
+    \"email\": \"${EMAIL}\",
+    \"password\": \"${PASSWORD}\",
     \"ip_address\": \"${X_FORWARDED_FOR}\",
     \"user_agent\": \"${USER_AGENT}\"
   }" | jq . || true

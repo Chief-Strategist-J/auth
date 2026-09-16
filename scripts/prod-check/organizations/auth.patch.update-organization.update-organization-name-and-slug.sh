@@ -7,8 +7,8 @@ if [ -f "${CONFIG_PATH}" ]; then
   source "${CONFIG_PATH}"
 fi
 
-echo "==> [organizations] PATCH /api/v1/auth/organizations/${TARGET_ORG_ID} -> Update Organization Name and Slug"
-curl -s -X PATCH "${AUTH_URL}/api/v1/auth/organizations/${TARGET_ORG_ID}" \
+echo "==> [organizations] PATCH /api/v1/auth/organizations/${ORG_ID} -> Update Organization Name and Slug"
+curl -s -X PATCH "${AUTH_URL}/api/v1/auth/organizations/${ORG_ID}" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "x-request-id: ${X_REQUEST_ID}" \
@@ -20,6 +20,6 @@ curl -s -X PATCH "${AUTH_URL}/api/v1/auth/organizations/${TARGET_ORG_ID}" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"name\": \"Updated ${DEFAULT_ORG_NAME}\",
-    \"slug\": \"updated-${DEFAULT_ORG_SLUG}\"
+    \"name\": \"Updated ${ORG_NAME}\",
+    \"slug\": \"updated-${ORG_SLUG}\"
   }" | jq . || true

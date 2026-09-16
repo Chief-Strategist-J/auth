@@ -20,5 +20,5 @@ curl -s -X PATCH "${AUTH_URL}/api/v1/auth/users/me" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"name\": \"Updated ${DEFAULT_USER_NAME}\"
+    \"name\": \"Updated ${NAME}\"
   }" | jq . || true

@@ -20,6 +20,6 @@ curl -s -X POST "${AUTH_URL}/api/v1/auth/change-password" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"current_password\": \"${DEFAULT_PASSWORD}\",
-    \"new_password\": \"${DEFAULT_NEW_PASSWORD}\"
+    \"current_password\": \"${CURRENT_PASSWORD}\",
+    \"new_password\": \"${NEW_PASSWORD}\"
   }" | jq . || true

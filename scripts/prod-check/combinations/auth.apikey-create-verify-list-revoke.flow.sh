@@ -7,36 +7,45 @@ if [ -f "${CONFIG_PATH}" ]; then
   source "${CONFIG_PATH}"
 fi
 
-FLOW_EMAIL="apikey-user-$(date +%s)@example.com"
+export X_FORWARDED_FOR="198.51.$((RANDOM % 200 + 10)).$((RANDOM % 200 + 10))"
+FLOW_EMAIL="apikey-user-$(date +%s)-$((RANDOM % 1000))@example.com"
 
 echo "=== STEP 1: REGISTER USER & ORGANIZATION ==="
-"${SCRIPT_DIR}/../auth-session/auth.post.sign-up.register-new-user-and-organization.sh" > /dev/null || true
+SIGNUP_RES=$(EMAIL="${FLOW_EMAIL}" PASSWORD="${DEFAULT_PASSWORD}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-up.register-new-user-and-organization.sh")
+echo "${SIGNUP_RES}"
 
-echo "=== STEP 2: SIGN IN USER ==="
-SIGNIN_RES=$(EMAIL="${FLOW_EMAIL}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
-echo "${SIGNIN_RES}"
-
-EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
-EXTRACTED_ORG_ID=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.user.org_id // .data.session.org_id // empty' || true)
+EXTRACTED_TOKEN=$(echo "${SIGNUP_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
+EXTRACTED_ORG_ID=$(echo "${SIGNUP_RES}" | sed -n '/^{/,$p' | jq -r '.data.user.org_id // .data.session.org_id // empty' || true)
 
 if [ -n "${EXTRACTED_TOKEN}" ] && [ "${EXTRACTED_TOKEN}" != "null" ]; then
   export TOKEN="${EXTRACTED_TOKEN}"
 fi
 if [ -n "${EXTRACTED_ORG_ID}" ] && [ "${EXTRACTED_ORG_ID}" != "null" ]; then
+  export ORG_ID="${EXTRACTED_ORG_ID}"
   export TARGET_ORG_ID="${EXTRACTED_ORG_ID}"
+fi
+
+echo "=== STEP 2: SIGN IN USER ==="
+SIGNIN_RES=$(EMAIL="${FLOW_EMAIL}" PASSWORD="${DEFAULT_PASSWORD}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
+echo "${SIGNIN_RES}"
+
+EXTRACTED_SIGNIN_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
+if [ -n "${EXTRACTED_SIGNIN_TOKEN}" ] && [ "${EXTRACTED_SIGNIN_TOKEN}" != "null" ]; then
+  export TOKEN="${EXTRACTED_SIGNIN_TOKEN}"
 fi
 
 echo "=== STEP 3: GENERATE 3-TIER SCOPED API KEY ==="
 CREATE_KEY_RES=$(KEY_NAME="Flow Test Ingestion Key" KEY_TYPE="general" "${SCRIPT_DIR}/../api-keys/auth.post.create-api-key.generate-3-tier-scoped-api-key.sh")
 echo "${CREATE_KEY_RES}"
 
-RAW_KEY=$(echo "${CREATE_KEY_RES}" | sed -n '/^{/,$p' | jq -r '.data.raw_key // .data.key // empty' || true)
-KEY_ID=$(echo "${CREATE_KEY_RES}" | sed -n '/^{/,$p' | jq -r '.data.key_id // .data.id // empty' || true)
+RAW_KEY=$(echo "${CREATE_KEY_RES}" | sed -n '/^{/,$p' | jq -r '.data.rawKey // .data.raw_key // .data.key // empty' || true)
+KEY_ID=$(echo "${CREATE_KEY_RES}" | sed -n '/^{/,$p' | jq -r '.data.keyRecord.key_id // .data.key_id // .data.id // empty' || true)
 
 if [ -n "${RAW_KEY}" ] && [ "${RAW_KEY}" != "null" ]; then
   export API_KEY="${RAW_KEY}"
 fi
 if [ -n "${KEY_ID}" ] && [ "${KEY_ID}" != "null" ]; then
+  export KEY_ID="${KEY_ID}"
   export TARGET_KEY_ID="${KEY_ID}"
 fi
 
