@@ -1,4 +1,5 @@
 import * as http from 'http';
+import { AUTH_CONFIG } from './config/env.config';
 import { ServiceRegistryManager, HTTP_CONSTANTS } from '@chief-strategist-j/shared-infra';
 import { AuthService } from './features/auth/service';
 import { AuthRestV1Router } from './api/rest/v1/router';
@@ -17,7 +18,7 @@ import { runMigrations } from '../database/migrate';
 
 initAuthTracing();
 
-const isMockDb = process.env.USE_MOCK_DB === 'true';
+const isMockDb = AUTH_CONFIG.server.useMockDb;
 
 if (!isMockDb) {
   runMigrations().catch((err: any) => {
@@ -25,9 +26,8 @@ if (!isMockDb) {
   });
 }
 
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : AUTH_CONSTANTS.DEFAULT_PORT;
-
-const dbUrl = process.env.DATABASE_URL || AUTH_CONSTANTS.DEFAULT_DATABASE_URL;
+const port = AUTH_CONFIG.server.port;
+const dbUrl = AUTH_CONFIG.db.url;
 export const repositoryAdapter: AuthRepositoryPort = isMockDb
   ? new AlloyDBOmniAuthAdapter()
   : new RealPostgresAuthAdapter(dbUrl);
@@ -101,7 +101,7 @@ const server = http.createServer((req, res) => {
 
 const authRegistryManager = new ServiceRegistryManager({
   name: AUTH_CONSTANTS.SERVICE_NAME,
-  host: process.env.HOST || process.env.SERVICE_HOST || process.env.HOSTNAME || '',
+  host: AUTH_CONFIG.server.host,
   port,
   protocol: AUTH_CONSTANTS.DEFAULT_PROTOCOL,
 });

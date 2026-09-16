@@ -1,3 +1,4 @@
+export * from './config/env.config';
 export * from './shared/errors/auth.errors';
 export * from './shared/errors/error-handler';
 export * from './shared/utils/argon2.util';

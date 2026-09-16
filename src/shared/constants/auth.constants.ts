@@ -1,9 +1,11 @@
+import { AUTH_CONFIG } from '../../config/env.config';
+
 export const AUTH_CONSTANTS = {
-  SERVICE_NAME: 'auth-service',
+  SERVICE_NAME: AUTH_CONFIG.otel.serviceName,
   SERVICE_VERSION: '1.0.0',
-  DEFAULT_PORT: 3001,
-  DEFAULT_DATABASE_URL: 'postgresql://postgres:postgres@localhost:31412/observability_auth',
-  DEFAULT_PROTOCOL: 'http',
+  DEFAULT_PORT: AUTH_CONFIG.server.port,
+  DEFAULT_DATABASE_URL: AUTH_CONFIG.db.url,
+  DEFAULT_PROTOCOL: AUTH_CONFIG.server.protocol,
   ENDPOINT_ROOT: '/',
   STATUS_NO_CONTENT: 204,
   METHOD_OPTIONS: 'OPTIONS',

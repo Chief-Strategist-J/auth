@@ -11,12 +11,25 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - USE_REAL_DB=true
-      - DATABASE_URL=postgresql://postgres:postgres@auth-db:5432/observability_auth
-      - REDIS_URL=redis://:llmobs_redis_s3cret_2024@llmobs-redis-ledger:6379
+      - AUTH_DB_HOST=auth-service-db
+      - AUTH_DB_PORT=5432
+      - AUTH_DB_USER=admin
+      - AUTH_DB_PASSWORD=llmobs_s3cret_2026
+      - AUTH_DB_NAME=llm_observability
+      - DATABASE_URL=postgresql://admin:llmobs_s3cret_2026@auth-service-db:5432/llm_observability
+      - AUTH_REDIS_HOST=llmobs-redis-ledger
+      - AUTH_REDIS_PORT=6379
+      - AUTH_REDIS_PASSWORD=llmobs_redis_s3cret_2026
+      - REDIS_URL=redis://:llmobs_redis_s3cret_2026@llmobs-redis-ledger:6379/0
       - KAFKA_BROKERS=llmobs-kafka-broker:9092
+      - KAFKA_CLIENT_ID=auth-client
+      - KAFKA_SECURITY_PROTOCOL=PLAINTEXT
       - JWT_SECRET=super-secure-production-auth-jwt-secret-key-replace-in-env-file-minimum-32-chars!
       - SERVICE_REGISTRY_URL=http://llmobs-service-registry:31426
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://llmobs-otel-collector:4318
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://llmobs-otel-collector:4318
+      - OTEL_EXPORTER_OTLP_GRPC_ENDPOINT=llmobs-otel-collector:4317
+      - OTEL_SERVICE_NAME=auth-service
+      - OTEL_EXPORTER_OTLP_INSECURE=true
     depends_on:
       auth-db:
         condition: service_healthy
@@ -33,11 +46,11 @@ services:
         limits:
           memory: 4G
     ports:
-      - "31412:5432"
+      - "5432:5432"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=observability_auth
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=llmobs_s3cret_2026
+      - POSTGRES_DB=llm_observability
       - ALLOYDB_ENABLE_COLUMNAR_ENGINE=false
     command: >
       postgres
@@ -50,7 +63,7 @@ services:
     volumes:
       - auth_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d llm_observability"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -64,6 +77,5 @@ volumes:
 
 networks:
   default:
-    name: llmobs-network
+    name: llmobs-auth-network
     external: true
-

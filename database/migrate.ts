@@ -6,9 +6,9 @@ import pg from 'pg';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  'postgresql://postgres:postgres@localhost:31412/observability_auth';
+import { AUTH_CONFIG } from '../src/config/env.config';
+
+const connectionString = AUTH_CONFIG.db.url;
 
 const pool = new pg.Pool({ connectionString });
 

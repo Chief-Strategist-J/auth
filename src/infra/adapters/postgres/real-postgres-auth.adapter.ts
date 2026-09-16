@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { SpanKind } from '@chief-strategist-j/shared-infra';
+import { AUTH_CONFIG } from '../../../config/env.config';
 import type { AuthRepositoryPort, OrganizationRecord } from '../../../features/auth/repository';
 import type { AuthUserRecord, AuditLogRecord } from '../../../features/auth/types';
 import type { ApiKeyRecord } from '../../../shared/types/auth.types';
@@ -13,12 +14,12 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
 
   constructor(connectionString?: string) {
     this.pool = new Pool({
-      connectionString: connectionString ?? process.env.DATABASE_URL,
-      host: process.env.ALLOYDB_OMNI_HOST ?? 'localhost',
-      port: process.env.ALLOYDB_OMNI_PORT ? parseInt(process.env.ALLOYDB_OMNI_PORT, 10) : 5432,
-      user: process.env.ALLOYDB_OMNI_USER ?? 'postgres',
-      password: process.env.ALLOYDB_OMNI_PASSWORD ?? 'postgres',
-      database: process.env.ALLOYDB_OMNI_DB ?? 'observability_auth',
+      connectionString: connectionString ?? AUTH_CONFIG.db.url,
+      host: AUTH_CONFIG.db.host,
+      port: AUTH_CONFIG.db.port,
+      user: AUTH_CONFIG.db.user,
+      password: AUTH_CONFIG.db.password,
+      database: AUTH_CONFIG.db.name,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
