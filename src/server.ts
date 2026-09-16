@@ -108,5 +108,5 @@ const authRegistryManager = new ServiceRegistryManager({
 
 server.listen(port, () => {
   console.log(`[${AUTH_CONSTANTS.SERVICE_NAME}] Auth HTTP Service running live on ${AUTH_CONSTANTS.DEFAULT_PROTOCOL}://${HTTP_CONSTANTS.HOST_LOCALHOST}:${port}`);
-  authRegistryManager.register().catch(() => {});
+  authRegistryManager.register().catch(() => { });
 });
