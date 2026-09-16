@@ -13,4 +13,4 @@ export {
   type ProducerNextFn,
   type ConsumerMiddleware,
   type ConsumerNextFn,
-} from '@chief-strategist-j/shared-infra';
+} from '@chief-strategist-j/shared-infra/messaging';

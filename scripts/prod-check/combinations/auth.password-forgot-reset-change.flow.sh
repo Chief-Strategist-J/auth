@@ -19,7 +19,7 @@ echo "=== STEP 2: REQUEST FORGOT PASSWORD RESET TOKEN ==="
 FORGOT_RES=$(EMAIL="${FLOW_EMAIL}" "${SCRIPT_DIR}/../password/auth.post.forgot-password.request-password-reset-email-token.sh")
 echo "${FORGOT_RES}"
 
-EXTRACTED_RESET_TOKEN=$(echo "${FORGOT_RES}" | jq -r '.data.token // .data.reset_token // empty')
+EXTRACTED_RESET_TOKEN=$(echo "${FORGOT_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.reset_token // empty' || true)
 if [ -n "${EXTRACTED_RESET_TOKEN}" ] && [ "${EXTRACTED_RESET_TOKEN}" != "null" ]; then
   export RESET_TOKEN="${EXTRACTED_RESET_TOKEN}"
 fi
@@ -31,7 +31,7 @@ echo "=== STEP 4: SIGN IN WITH NEW RESET PASSWORD ==="
 SIGNIN_RES=$(EMAIL="${FLOW_EMAIL}" PASSWORD="${RESET_PWD}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
 echo "${SIGNIN_RES}"
 
-EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | jq -r '.data.token // .data.session.token // empty')
+EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
 if [ -n "${EXTRACTED_TOKEN}" ] && [ "${EXTRACTED_TOKEN}" != "null" ]; then
   export TOKEN="${EXTRACTED_TOKEN}"
 fi

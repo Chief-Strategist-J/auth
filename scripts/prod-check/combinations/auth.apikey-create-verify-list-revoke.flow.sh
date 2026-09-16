@@ -16,8 +16,8 @@ echo "=== STEP 2: SIGN IN USER ==="
 SIGNIN_RES=$(EMAIL="${FLOW_EMAIL}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
 echo "${SIGNIN_RES}"
 
-EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | jq -r '.data.token // .data.session.token // empty')
-EXTRACTED_ORG_ID=$(echo "${SIGNIN_RES}" | jq -r '.data.user.org_id // .data.session.org_id // empty')
+EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
+EXTRACTED_ORG_ID=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.user.org_id // .data.session.org_id // empty' || true)
 
 if [ -n "${EXTRACTED_TOKEN}" ] && [ "${EXTRACTED_TOKEN}" != "null" ]; then
   export TOKEN="${EXTRACTED_TOKEN}"
@@ -30,8 +30,8 @@ echo "=== STEP 3: GENERATE 3-TIER SCOPED API KEY ==="
 CREATE_KEY_RES=$(KEY_NAME="Flow Test Ingestion Key" KEY_TYPE="general" "${SCRIPT_DIR}/../api-keys/auth.post.create-api-key.generate-3-tier-scoped-api-key.sh")
 echo "${CREATE_KEY_RES}"
 
-RAW_KEY=$(echo "${CREATE_KEY_RES}" | jq -r '.data.raw_key // .data.key // empty')
-KEY_ID=$(echo "${CREATE_KEY_RES}" | jq -r '.data.key_id // .data.id // empty')
+RAW_KEY=$(echo "${CREATE_KEY_RES}" | sed -n '/^{/,$p' | jq -r '.data.raw_key // .data.key // empty' || true)
+KEY_ID=$(echo "${CREATE_KEY_RES}" | sed -n '/^{/,$p' | jq -r '.data.key_id // .data.id // empty' || true)
 
 if [ -n "${RAW_KEY}" ] && [ "${RAW_KEY}" != "null" ]; then
   export API_KEY="${RAW_KEY}"

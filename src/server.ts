@@ -1,6 +1,7 @@
 import * as http from 'http';
 import { AUTH_CONFIG } from './config/env.config';
-import { ServiceRegistryManager, HTTP_CONSTANTS } from '@chief-strategist-j/shared-infra';
+import { ServiceRegistryManager } from '@chief-strategist-j/shared-infra/discovery';
+import { HTTP_CONSTANTS } from '@chief-strategist-j/shared-infra/http';
 import { AuthService } from './features/auth/service';
 import { AuthRestV1Router } from './api/rest/v1/router';
 import { AlloyDBOmniAuthAdapter } from './infra/adapters/postgres/alloydb-omni-auth.adapter';

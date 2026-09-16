@@ -1,4 +1,4 @@
-import { RequestContext } from '@chief-strategist-j/shared-infra';
+import { RequestContext } from '@chief-strategist-j/shared-infra/tracing';
 
 export interface BaseCommand {
   context?: Partial<RequestContext>;

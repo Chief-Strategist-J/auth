@@ -15,7 +15,7 @@ echo "=== STEP 1: REGISTER & SIGN IN USER TO GENERATE AUDIT EVENTS ==="
 SIGNIN_RES=$(EMAIL="${FLOW_EMAIL}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
 echo "${SIGNIN_RES}"
 
-EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | jq -r '.data.token // .data.session.token // empty')
+EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
 if [ -n "${EXTRACTED_TOKEN}" ] && [ "${EXTRACTED_TOKEN}" != "null" ]; then
   export TOKEN="${EXTRACTED_TOKEN}"
 fi

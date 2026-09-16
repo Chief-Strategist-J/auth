@@ -18,7 +18,7 @@ echo "=== STEP 2: SIGN IN OWNER USER ==="
 SIGNIN_RES=$(EMAIL="${FLOW_EMAIL}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
 echo "${SIGNIN_RES}"
 
-EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | jq -r '.data.token // .data.session.token // empty')
+EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
 if [ -n "${EXTRACTED_TOKEN}" ] && [ "${EXTRACTED_TOKEN}" != "null" ]; then
   export TOKEN="${EXTRACTED_TOKEN}"
 fi
@@ -27,7 +27,7 @@ echo "=== STEP 3: CREATE SECONDARY ORGANIZATION ==="
 CREATE_ORG_RES=$(ORG_NAME="${FLOW_ORG_NAME}" ORG_SLUG="${FLOW_ORG_SLUG}" "${SCRIPT_DIR}/../organizations/auth.post.create-organization.create-new-multi-tenant-organization.sh")
 echo "${CREATE_ORG_RES}"
 
-EXTRACTED_ORG_ID=$(echo "${CREATE_ORG_RES}" | jq -r '.data.id // .data.org_id // empty')
+EXTRACTED_ORG_ID=$(echo "${CREATE_ORG_RES}" | sed -n '/^{/,$p' | jq -r '.data.id // .data.org_id // empty' || true)
 if [ -n "${EXTRACTED_ORG_ID}" ] && [ "${EXTRACTED_ORG_ID}" != "null" ]; then
   export TARGET_ORG_ID="${EXTRACTED_ORG_ID}"
 fi
@@ -39,7 +39,7 @@ echo "=== STEP 5: SWITCH ACTIVE TENANT CONTEXT ==="
 SWITCH_RES=$("${SCRIPT_DIR}/../organizations/auth.post.switch-organization.switch-active-tenant-context-and-reissue-token.sh")
 echo "${SWITCH_RES}"
 
-NEW_TOKEN=$(echo "${SWITCH_RES}" | jq -r '.data.token // empty')
+NEW_TOKEN=$(echo "${SWITCH_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // empty' || true)
 if [ -n "${NEW_TOKEN}" ] && [ "${NEW_TOKEN}" != "null" ]; then
   export TOKEN="${NEW_TOKEN}"
 fi

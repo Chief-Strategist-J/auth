@@ -1,4 +1,4 @@
-import { KafkaEvent } from '@chief-strategist-j/shared-infra';
+import { KafkaEvent } from '@chief-strategist-j/shared-infra/messaging';
 import { BaseTracedKafkaHandler } from './base-traced-handler';
 import { AuthReadProjectionStore } from '../cqrs/projection.store';
 

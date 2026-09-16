@@ -17,7 +17,7 @@ echo "==> STEP 2: SIGN IN ADMIN USER ==="
 SIGNIN_RES=$(EMAIL="${ADMIN_EMAIL}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-in.authenticate-user-and-issue-jwt-session.sh")
 echo "${SIGNIN_RES}"
 
-EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | jq -r '.data.token // .data.session.token // empty')
+EXTRACTED_TOKEN=$(echo "${SIGNIN_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)
 if [ -n "${EXTRACTED_TOKEN}" ] && [ "${EXTRACTED_TOKEN}" != "null" ]; then
   export TOKEN="${EXTRACTED_TOKEN}"
 fi
@@ -29,7 +29,7 @@ echo "==> STEP 4: INVITE NEW MEMBER TO ORGANIZATION ==="
 INVITE_RES=$(EMAIL="${MEMBER_EMAIL}" NAME="Flow Member User" "${SCRIPT_DIR}/../users-profile/auth.post.invite-user.invite-new-user-to-organization-by-email.sh")
 echo "${INVITE_RES}"
 
-EXTRACTED_USER_ID=$(echo "${INVITE_RES}" | jq -r '.data.id // .data.user_id // empty')
+EXTRACTED_USER_ID=$(echo "${INVITE_RES}" | sed -n '/^{/,$p' | jq -r '.data.id // .data.user_id // empty' || true)
 if [ -n "${EXTRACTED_USER_ID}" ] && [ "${EXTRACTED_USER_ID}" != "null" ]; then
   export TARGET_USER_ID="${EXTRACTED_USER_ID}"
 fi
