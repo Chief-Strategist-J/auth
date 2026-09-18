@@ -55,10 +55,14 @@ acquire_token() {
 }
 
 execute_install() {
-  local token="$1"
-  shift
-  echo "Installing dependencies for auth..."
-  NODE_AUTH_TOKEN="$token" npm install "$@"
+  local token="${1:-}"
+  shift || true
+  echo "Installing dependencies for auth from public npm registry..."
+  if [ -n "$token" ]; then
+    NODE_AUTH_TOKEN="$token" npm install "$@"
+  else
+    npm install "$@"
+  fi
   echo "Dependencies installed successfully!"
 }
 
@@ -67,11 +71,7 @@ main() {
   local token
   package_dir=$(get_package_dir)
   cd "$package_dir"
-  token=$(acquire_token "$@")
-  if [ -z "$token" ]; then
-    echo "Error: Token cannot be empty. Aborting installation." >&2
-    exit 1
-  fi
+  token=$(extract_flag_token "$@")
   execute_install "$token" "$@"
 }
 
