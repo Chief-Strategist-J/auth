@@ -24,6 +24,13 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
     });
+    this.pool.on('connect', (client: any) => {
+      client.on('error', (err: any) => {
+        if (err?.code !== '57P01' && !err?.message?.includes('terminating connection')) {
+          console.error('[PostgreSQL Client Error]', err);
+        }
+      });
+    });
     this.pool.on('error', (err: any) => {
       if (err?.code !== '57P01' && !err?.message?.includes('terminating connection')) {
         console.error('[PostgreSQL Pool Error]', err);

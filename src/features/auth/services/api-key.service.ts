@@ -1,3 +1,15 @@
+/**
+ * @file api-key.service.ts
+ * @description Domain Service for Multi-Tier API Key Generation, Hashing, Permission Verification, and Revocation.
+ *
+ * OVERALL ALGORITHM:
+ * 1. API Key Generation: Validate schema -> verify organization existence -> resolve prefix via dictionary lookup ->
+ *    generate cryptographically secure key and Argon2id hash -> persist record in repository -> return raw key and metadata.
+ * 2. API Key Verification: Hash incoming key -> locate record in repository -> verify active status (not revoked) ->
+ *    evaluate required permission against key scopes with fail-fast authorization check.
+ * 3. API Key Revocation: Forward revocation request to repository adapter.
+ */
+
 import type { AuthRepositoryPort } from '../repository';
 import type { CreateApiKeyInput, VerifyApiKeyInput } from '../types';
 import type { ApiKeyRecord } from '../../../shared/types/auth.types';
@@ -5,38 +17,42 @@ import { CreateApiKeyInputSchema, VerifyApiKeyInputSchema } from '../schema/auth
 import { ApiKeyRevokedError, InsufficientPermissionError, ValidationError } from '../../../shared/errors/auth.errors';
 import { hashApiKey } from '../../../shared/utils/argon2.util';
 import { AUTH_CONSTANTS } from '../../../shared/constants/auth.constants';
+import { normalizeString } from '../../../shared/utils/string.util';
+
+const KEY_PREFIX_MAP: Readonly<Record<string, string>> = Object.freeze({
+  [AUTH_CONSTANTS.KEY_TYPE_SUPER_SECRET]: AUTH_CONSTANTS.API_KEY_PREFIX_SUPER_SECRET,
+  [AUTH_CONSTANTS.KEY_TYPE_TESTING]: AUTH_CONSTANTS.API_KEY_PREFIX_TESTING,
+  [AUTH_CONSTANTS.KEY_TYPE_GENERAL]: AUTH_CONSTANTS.API_KEY_PREFIX_GENERAL,
+});
 
 export class ApiKeyDomainService {
   constructor(private readonly repo: AuthRepositoryPort) {}
 
   async generateApiKey(input: CreateApiKeyInput): Promise<{ rawKey: string; keyRecord: ApiKeyRecord }> {
     const validated = CreateApiKeyInputSchema.parse(input);
+    const orgId = normalizeString(validated.org_id);
 
-    const org = await this.repo.getOrganizationById(validated.org_id);
+    const org = await this.repo.getOrganizationById(orgId);
     if (!org) {
-      throw new ValidationError(`Invalid organization ID '${validated.org_id}': Target organization does not exist in the system.`);
+      throw new ValidationError(`Invalid organization ID '${orgId}': Target organization does not exist in the system.`);
     }
 
-    let prefix: string = AUTH_CONSTANTS.API_KEY_PREFIX_GENERAL;
-    if (validated.key_type === AUTH_CONSTANTS.KEY_TYPE_SUPER_SECRET) {
-      prefix = AUTH_CONSTANTS.API_KEY_PREFIX_SUPER_SECRET;
-    } else if (validated.key_type === AUTH_CONSTANTS.KEY_TYPE_TESTING) {
-      prefix = AUTH_CONSTANTS.API_KEY_PREFIX_TESTING;
-    }
+    const keyType = normalizeString(validated.key_type);
+    const prefix = KEY_PREFIX_MAP[keyType] ?? AUTH_CONSTANTS.API_KEY_PREFIX_GENERAL;
 
     const keyId = `key_${Math.random().toString(36).substring(2, 9)}`;
     const secret = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    const rawKey = `${prefix}${validated.org_id}_${secret}`;
+    const rawKey = `${prefix}${orgId}_${secret}`;
     const keyHash = await hashApiKey(rawKey);
 
     const keyRecord: ApiKeyRecord = {
       key_id: keyId,
-      org_id: validated.org_id,
+      org_id: orgId,
       key_type: validated.key_type,
       key_hash: keyHash,
       prefix,
-      name: validated.name,
-      permissions: validated.permissions,
+      name: normalizeString(validated.name),
+      permissions: Array.isArray(validated.permissions) ? [...validated.permissions] : [],
       created_at_ms: Date.now(),
       revoked: false,
     };
@@ -46,12 +62,14 @@ export class ApiKeyDomainService {
   }
 
   async listApiKeys(orgId: string): Promise<ApiKeyRecord[]> {
-    return this.repo.listApiKeysByOrgId(orgId);
+    const normalizedOrgId = normalizeString(orgId);
+    return this.repo.listApiKeysByOrgId(normalizedOrgId);
   }
 
   async verifyApiKey(input: VerifyApiKeyInput): Promise<{ valid: boolean; record: ApiKeyRecord; authorized: boolean }> {
     const validated = VerifyApiKeyInputSchema.parse(input);
-    const keyHash = await hashApiKey(validated.key);
+    const rawKey = normalizeString(validated.key);
+    const keyHash = await hashApiKey(rawKey);
     const record = await this.repo.findApiKeyByHash(keyHash);
 
     if (!record || record.revoked) {
@@ -60,13 +78,15 @@ export class ApiKeyDomainService {
 
     let authorized = true;
     if (validated.required_permission) {
-      const isSuperSecret = record.key_type === AUTH_CONSTANTS.KEY_TYPE_SUPER_SECRET;
-      const hasAdminAll = record.permissions.includes(AUTH_CONSTANTS.PERMISSION_ADMIN_ALL);
-      const hasSpecific = record.permissions.includes(validated.required_permission);
-      authorized = isSuperSecret || hasAdminAll || hasSpecific;
+      const required = normalizeString(validated.required_permission);
+      const permissions = Array.isArray(record.permissions) ? record.permissions : [];
+      authorized =
+        record.key_type === AUTH_CONSTANTS.KEY_TYPE_SUPER_SECRET ||
+        permissions.includes(AUTH_CONSTANTS.PERMISSION_ADMIN_ALL) ||
+        permissions.includes(required);
 
       if (!authorized) {
-        throw new InsufficientPermissionError(validated.required_permission);
+        throw new InsufficientPermissionError(required);
       }
     }
 
@@ -74,7 +94,8 @@ export class ApiKeyDomainService {
   }
 
   async revokeApiKey(keyId: string): Promise<void> {
-    await this.repo.revokeApiKey(keyId);
+    const normalizedKeyId = normalizeString(keyId);
+    await this.repo.revokeApiKey(normalizedKeyId);
   }
 
   getSystemPermissions(): string[] {

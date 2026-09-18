@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export AUTH_URL="${AUTH_URL:-http://localhost:3000}"
+export AUTH_URL="${AUTH_URL:-http://localhost:3001}"
 
 export TOKEN="${TOKEN:-YOUR_JWT_SESSION_TOKEN_HERE}"
 export RESET_TOKEN="${RESET_TOKEN:-sample-reset-token}"

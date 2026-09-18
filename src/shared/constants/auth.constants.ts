@@ -1,3 +1,13 @@
+/**
+ * @file auth.constants.ts
+ * @description Centralized, deeply immutable constants for the Auth Subsystem.
+ *
+ * OVERALL ALGORITHM:
+ * 1. Pull dynamic configuration from AUTH_CONFIG without direct process.env reads.
+ * 2. Declare system-wide protocol headers, endpoints, role definitions, and permission scopes.
+ * 3. Export deeply frozen constant dictionary to ensure immutability across runtime consumers.
+ */
+
 import { AUTH_CONFIG } from '../../config/env.config';
 
 export const AUTH_CONSTANTS = {
@@ -27,6 +37,12 @@ export const AUTH_CONSTANTS = {
     BEARER_PREFIX: 'Bearer ',
   },
 
+  SECURITY_REASONS: {
+    ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
+    IP_RATE_LIMIT_EXCEEDED: 'IP_RATE_LIMIT_EXCEEDED',
+    SECURITY_POLICY_VIOLATION: 'SECURITY_POLICY_VIOLATION',
+  },
+
   SECURITY_CONFIG: {
     CORS_HEADERS: {
       'Access-Control-Allow-Origin': '*',
@@ -40,11 +56,11 @@ export const AUTH_CONSTANTS = {
     PASSWORD_MIN_LENGTH: 12,
     PASSWORD_PATTERN: '^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{12,}$',
     RATE_LIMIT: {
-      MAX_ATTEMPTS_PER_IP: 10,
-      IP_WINDOW_MS: 15 * 60 * 1000,
-      MAX_FAILED_PER_EMAIL: 5,
-      EMAIL_LOCKOUT_MS: 15 * 60 * 1000,
-      EMAIL_CAPTCHA_THRESHOLD: 3,
+      MAX_ATTEMPTS_PER_IP: AUTH_CONFIG.security.rateLimit.maxAttemptsPerIp,
+      IP_WINDOW_MS: AUTH_CONFIG.security.rateLimit.ipWindowMs,
+      MAX_FAILED_PER_EMAIL: AUTH_CONFIG.security.rateLimit.maxFailedPerEmail,
+      EMAIL_LOCKOUT_MS: AUTH_CONFIG.security.rateLimit.emailLockoutMs,
+      EMAIL_CAPTCHA_THRESHOLD: AUTH_CONFIG.security.rateLimit.emailCaptchaThreshold,
     },
   },
 

@@ -7,6 +7,8 @@ import { AuthRestV1Router } from './api/rest/v1/router';
 import { AlloyDBOmniAuthAdapter } from './infra/adapters/postgres/alloydb-omni-auth.adapter';
 import { RealPostgresAuthAdapter } from './infra/adapters/postgres/real-postgres-auth.adapter';
 import { RedisCacheAdapter } from './infra/adapters/redis/redis-cache.adapter';
+import { RealRedisCacheAdapter } from './infra/adapters/redis/real-redis-cache.adapter';
+import type { ICachePort } from './shared/ports/cache.interface';
 
 import type { AuthRepositoryPort } from './features/auth/repository';
 import { AuthEventProducer } from './shared/messaging/producers/auth-event.producer';
@@ -20,6 +22,7 @@ import { runMigrations } from '../database/migrate';
 initAuthTracing();
 
 const isMockDb = AUTH_CONFIG.server.useMockDb;
+const isMockRedis = AUTH_CONFIG.server.useMockRedis;
 
 if (!isMockDb) {
   runMigrations().catch((err: any) => {
@@ -44,8 +47,11 @@ authEventConsumer.init().catch((err: any) => {
   console.warn('[kafka-consumer] Operating in fallback mode:', err?.message || err);
 });
 
-export const cacheAdapter = new RedisCacheAdapter();
-export const service = new AuthService(repositoryAdapter, authEventProducer, cacheAdapter);
+export const cacheAdapter: ICachePort = isMockRedis
+  ? new RedisCacheAdapter()
+  : new RealRedisCacheAdapter(AUTH_CONFIG.redis.url);
+
+export const service = new AuthService(repositoryAdapter, authEventProducer, cacheAdapter, AUTH_CONFIG.security);
 export const router = new AuthRestV1Router(service);
 
 const server = http.createServer((req, res) => {

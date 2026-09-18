@@ -15,8 +15,8 @@
 | Domain | Capability | RFC / Standard | Current Status | Milestone | Priority |
 |---|---|---|---|---|---|
 | **Session Management** | Scoped JWT Issuance (`sub`, `org`, `role`) | RFC 7519 | ✅ **Completed** | Production v1.0 | Core |
-| **Session Management** | Direct Redis $O(1)$ Denylist TTL (ADR 0004 Kill Switch) | ADR 0004 | ⏳ **Pending** | v1.0-hotfix | **P0** |
-| **Security & Defense** | Login Rate Limiting (IP Lockout + Email CAPTCHA/Backoff) | RFC 6585 | ⏳ **Pending** | v1.0-hotfix | **P0** |
+| **Session Management** | Direct Redis $O(1)$ Denylist TTL (ADR 0004 Kill Switch) | ADR 0004 | ✅ **Completed** | v1.0-hotfix | **P0** |
+| **Security & Defense** | Login Rate Limiting (IP Lockout + Email CAPTCHA/Backoff) | RFC 6585 | ✅ **Completed** | v1.0-hotfix | **P0** |
 | **API Key Engine** | 3-Tier API Keys (`ak_gen_`, `ak_tst_`, `ak_sec_`) | Structured Prefixes | ✅ **Completed** | Production v1.0 | Core |
 | **API Key Engine** | Key Expiration (`expires_at_ms`) & Instant Revocation for `ak_sec_` | TTL Enforced | ⏳ **Pending** | v1.0-hotfix | **P0** |
 | **Notifications** | Transactional Mailer Adapter (SMTP / SES / SendGrid) | MIME RFC 2045 | ⏳ **Pending** | v1.0-hotfix | **P0** |

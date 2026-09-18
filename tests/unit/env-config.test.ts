@@ -25,5 +25,14 @@ describe('Centralized Environment Configuration & Existence Validation', () => {
     expect(AUTH_CONFIG.otel.insecure).toBe(true);
 
     expect(AUTH_CONFIG.serviceRegistry.url).toBe('http://localhost:31426');
+
+    // Security Limits Configuration
+    expect(AUTH_CONFIG.security.rateLimit.maxAttemptsPerIp).toBe(10);
+    expect(AUTH_CONFIG.security.rateLimit.ipWindowMs).toBe(15 * 60 * 1000);
+    expect(AUTH_CONFIG.security.rateLimit.maxFailedPerEmail).toBe(5);
+    expect(AUTH_CONFIG.security.rateLimit.emailLockoutMs).toBe(15 * 60 * 1000);
+    expect(AUTH_CONFIG.security.rateLimit.emailCaptchaThreshold).toBe(3);
+    expect(AUTH_CONFIG.security.sessionDenylist.keyPrefix).toBe('auth:denylist:');
+    expect(AUTH_CONFIG.security.sessionDenylist.defaultTtlSeconds).toBe(3600);
   });
 });

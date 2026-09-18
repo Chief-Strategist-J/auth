@@ -8,11 +8,13 @@ if [ -f "${CONFIG_PATH}" ]; then
 fi
 
 export X_FORWARDED_FOR="198.51.$((RANDOM % 200 + 10)).$((RANDOM % 200 + 10))"
-ADMIN_EMAIL="admin-flow-$(date +%s)-$((RANDOM % 1000))@example.com"
-MEMBER_EMAIL="member-flow-$(date +%s)-$((RANDOM % 1000))@example.com"
+FLOW_TS="$(date +%s)-$((RANDOM % 1000))"
+ADMIN_EMAIL="admin-flow-${FLOW_TS}@example.com"
+ADMIN_ORG_NAME="Admin Org ${FLOW_TS}"
+MEMBER_EMAIL="member-flow-${FLOW_TS}@example.com"
 
 echo "==> STEP 1: REGISTER ADMIN USER & ORGANIZATION ==="
-SIGNUP_RES=$(EMAIL="${ADMIN_EMAIL}" PASSWORD="${DEFAULT_PASSWORD}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-up.register-new-user-and-organization.sh")
+SIGNUP_RES=$(EMAIL="${ADMIN_EMAIL}" ORG_NAME="${ADMIN_ORG_NAME}" PASSWORD="${DEFAULT_PASSWORD}" "${SCRIPT_DIR}/../auth-session/auth.post.sign-up.register-new-user-and-organization.sh")
 echo "${SIGNUP_RES}"
 
 EXTRACTED_TOKEN=$(echo "${SIGNUP_RES}" | sed -n '/^{/,$p' | jq -r '.data.token // .data.session.token // empty' || true)

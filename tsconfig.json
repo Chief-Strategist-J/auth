@@ -21,10 +21,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "paths": {
-      "@chief-strategist-j/shared-infra": ["../shared-infra/dist/index.d.ts"],
-      "@chief-strategist-j/shared-infra/*": ["../shared-infra/dist/*"]
-    },
     "noEmit": true
   },
   "include": ["src/**/*", "contracts/**/*"]

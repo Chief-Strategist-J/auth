@@ -89,4 +89,33 @@ describe('AuthService (Unit Tests)', () => {
 
     expect(secResult.rawKey.startsWith(AUTH_CONSTANTS.API_KEY_PREFIX_SUPER_SECRET)).toBe(true);
   });
+
+  it('should support declarative sign-in custom rules via Rules Engine without breaking existing flow', async () => {
+    const repository = new AlloyDBOmniAuthAdapter();
+    const customAuthService = new AuthService(
+      repository,
+      undefined,
+      undefined,
+      undefined,
+      [
+        {
+          id: 'auth.rule.deny_prohibited_email_domain',
+          name: 'Deny sign-in from untrusted domain',
+          category: 'threat_defense',
+          priority: 150,
+          effect: 'deny',
+          conditions: [
+            { field: 'email', op: 'ends_with', value: '@disposable.com' },
+          ],
+        },
+      ],
+    );
+
+    await expect(
+      customAuthService.signIn({
+        email: 'attacker@disposable.com',
+        password: 'Password123!',
+      }),
+    ).rejects.toThrow();
+  });
 });

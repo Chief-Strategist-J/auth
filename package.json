@@ -20,11 +20,13 @@
     "install:deps": "./scripts/install.sh"
   },
   "dependencies": {
-    "@chief-strategist-j/shared-infra": "^1.0.5",
+    "@chief-strategist-j/shared-infra": "^1.0.7",
+    "ioredis": "^6.0.0",
     "pg": "^8.23.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/ioredis": "^4.28.10",
     "@types/node": "^20.11.0",
     "@types/pg": "^8.21.0",
     "tsx": "^4.19.0",

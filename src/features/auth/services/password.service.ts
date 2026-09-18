@@ -1,14 +1,29 @@
+/**
+ * @file password.service.ts
+ * @description Domain Service for Password Recovery, Cryptographic Reset Tokens, and Password Rotation.
+ *
+ * OVERALL ALGORITHM:
+ * 1. Forgot Password: Normalize email -> lookup user -> if absent return empty token (anti-enumeration) ->
+ *    generate high-entropy reset token and cryptographic Argon2id hash -> persist token in repository with 1hr TTL.
+ * 2. Reset Password: Validate schema -> hash presented token -> verify record existence, unused state, and validity window ->
+ *    hash new password with Argon2id -> update user record -> mark reset token used.
+ * 3. Change Password: Validate schema -> lookup authenticated user -> verify current password with Argon2id ->
+ *    hash new password with Argon2id -> update user password in repository.
+ */
+
 import type { AuthRepositoryPort } from '../repository';
 import type { ForgotPasswordInput, ResetPasswordInput, ChangePasswordInput } from '../types';
 import { ResetPasswordInputSchema, ChangePasswordInputSchema } from '../schema/auth.schema';
 import { InvalidCredentialsError, ValidationError } from '../../../shared/errors/auth.errors';
 import { hashPassword, verifyPassword, hashApiKey } from '../../../shared/utils/argon2.util';
+import { normalizeString } from '../../../shared/utils/string.util';
 
 export class PasswordDomainService {
   constructor(private readonly repo: AuthRepositoryPort) {}
 
   async forgotPassword(input: ForgotPasswordInput): Promise<{ resetToken: string }> {
-    const user = await this.repo.findUserByEmail(input.email);
+    const email = normalizeString(input.email, 'lower');
+    const user = await this.repo.findUserByEmail(email);
     if (!user) {
       return { resetToken: '' };
     }
@@ -23,7 +38,8 @@ export class PasswordDomainService {
 
   async resetPassword(input: ResetPasswordInput): Promise<void> {
     const validated = ResetPasswordInputSchema.parse(input);
-    const tokenHash = await hashApiKey(validated.token);
+    const rawToken = normalizeString(validated.token);
+    const tokenHash = await hashApiKey(rawToken);
 
     const record = await this.repo.findPasswordResetToken(tokenHash);
     if (!record || record.used || record.expiresAtMs < Date.now()) {
@@ -36,8 +52,9 @@ export class PasswordDomainService {
   }
 
   async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
+    const normalizedUserId = normalizeString(userId);
     const validated = ChangePasswordInputSchema.parse(input);
-    const user = await this.repo.findUserById(userId);
+    const user = await this.repo.findUserById(normalizedUserId);
     if (!user) {
       throw new InvalidCredentialsError();
     }
