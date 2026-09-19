@@ -56,30 +56,30 @@ flowchart TD
     end
 
     subgraph APIGateway["REST Routing Layer (:3001)"]
-        RestRouter["AuthRestV1Router\n(Declarative Routing & Request Context)"]
+        RestRouter["AuthRestV1Router<br/>Declarative Routing and Context"]
         RateLimiterMW["Adaptive Rate Limiter Middleware"]
     end
 
     subgraph CoreServices["Hexagonal Core: Domain Services"]
-        ApiKeyService["ApiKeyDomainService\n(TTL Enforcement & Revocation Logic)"]
-        UserAuthService["UserAuthDomainService\n(Registration, Login & Token Verification)"]
-        NotificationService["NotificationDomainService\n(Transactional Message Dispatcher)"]
-        Tracer["OpenTelemetry Tracer\n(withSpan Instrumentations)"]
+        ApiKeyService["ApiKeyDomainService<br/>TTL Enforcement and Revocation Logic"]
+        UserAuthService["UserAuthDomainService<br/>Registration, Login and Verification"]
+        NotificationService["NotificationDomainService<br/>Transactional Message Dispatcher"]
+        Tracer["OpenTelemetry Tracer<br/>withSpan Instrumentation"]
     end
 
-    subgraph DataAdapters["Persistence & In-Memory Ports"]
-        PostgresRepo[("PostgreSQL / AlloyDB Omni\n- auth_api_keys\n- auth_email_verifications\n- auth_users\n- auth_organizations")]
-        RedisCache[("Redis Edge Cache Cluster\n- auth:revoked_api_key:{id}\n- auth:denylist:{jti}")]
+    subgraph DataAdapters["Persistence and In-Memory Ports"]
+        PostgresRepo[("PostgreSQL / AlloyDB Omni<br/>auth_api_keys, auth_users")]
+        RedisCache[("Redis Edge Cache Cluster<br/>auth:revoked_api_key, auth:denylist")]
     end
 
     subgraph MailerInfra["Pluggable Mailer Subsystem (MailerPort)"]
         MailerFactory["createMailer(AUTH_CONFIG.mailer)"]
-        BaseRest["BaseRestMailerAdapter\n(Fail-Fast Validation & Error Envelopes)"]
-        HttpClient["ScalableHttpClient (@shared-infra/http)\n(Circuit Breaker, SSRF Guard, Jitter Retries)"]
-        SES["SesMailerAdapter\n(SigV4 Signed REST)"]
-        SendGrid["SendgridMailerAdapter\n(Bearer Token REST)"]
-        SMTP["SmtpMailerAdapter\n(RFC 2045 TLS / STARTTLS)"]
-        Mock["MockMailerAdapter\n(In-Memory Test Double)"]
+        BaseRest["BaseRestMailerAdapter<br/>Fail-Fast Validation and Error Handling"]
+        HttpClient["ScalableHttpClient<br/>Circuit Breaker, SSRF Guard, Retries"]
+        SES["SesMailerAdapter<br/>SigV4 Signed REST"]
+        SendGrid["SendgridMailerAdapter<br/>Bearer Token REST"]
+        SMTP["SmtpMailerAdapter<br/>RFC 2045 TLS / STARTTLS"]
+        Mock["MockMailerAdapter<br/>In-Memory Test Double"]
     end
 
     subgraph RemoteProviders["External Email Providers"]
@@ -396,7 +396,7 @@ sequenceDiagram
     Client->>Server: TCP SYN / Connect
     Server-->>Client: TCP ACK + 220 mail.domain.com ESMTP Postfix
     Client->>Server: EHLO client.local
-    Server-->>Client: 250-STARTTLS \n 250-AUTH LOGIN PLAIN \n 250 8BITMIME
+    Server-->>Client: 250-STARTTLS, 250-AUTH LOGIN PLAIN, 250 8BITMIME
     
     rect rgb(240, 248, 255)
         Note over Client, Server: RFC 3207 STARTTLS Upgrade
@@ -405,7 +405,7 @@ sequenceDiagram
         Client->>Server: TLS Handshake (ClientHello, Cert Verification)
         Server-->>Client: TLS Session Established
         Client->>Server: EHLO client.local (Encrypted)
-        Server-->>Client: 250-AUTH LOGIN PLAIN \n 250 OK
+        Server-->>Client: 250-AUTH LOGIN PLAIN, 250 OK
     end
 
     rect rgb(255, 248, 240)
@@ -522,28 +522,28 @@ The `SesMailerAdapter` signs requests natively with zero AWS SDK dependencies us
 ```mermaid
 flowchart TD
     subgraph Step1["1. Canonical Request"]
-        CR["HTTPMethod: POST\nCanonicalURI: /v2/email/outbound-emails\nCanonicalQueryString: (empty)\nCanonicalHeaders: host, x-amz-date\nSignedHeaders: host;x-amz-date\nHashedPayload: SHA-256(RawBody)"]
+        CR["POST /v2/email/outbound-emails<br/>SignedHeaders: host;x-amz-date<br/>Payload: SHA-256(RawBody)"]
         HashedCR["SHA-256(Canonical Request)"]
         CR --> HashedCR
     end
 
     subgraph Step2["2. String to Sign"]
-        STS["Algorithm: AWS4-HMAC-SHA256\nRequestDateTime: 20260919T101500Z\nCredentialScope: 20260919/us-east-1/ses/aws4_request\nHashedCanonicalRequest"]
+        STS["Algorithm: AWS4-HMAC-SHA256<br/>Scope: Date/Region/ses/aws4_request<br/>HashedCanonicalRequest"]
         HashedCR --> STS
     end
 
     subgraph Step3["3. Derived Signing Key"]
-        KSecret["kSecret = 'AWS4' + SecretAccessKey"]
-        KDate["kDate = HMAC-SHA256(kSecret, '20260919')"]
-        KRegion["kRegion = HMAC-SHA256(kDate, 'us-east-1')"]
-        KService["kService = HMAC-SHA256(kRegion, 'ses')"]
-        KSigning["kSigning = HMAC-SHA256(KService, 'aws4_request')"]
+        KSecret["kSecret: AWS4 + SecretAccessKey"]
+        KDate["kDate: HMAC-SHA256(kSecret, Date)"]
+        KRegion["kRegion: HMAC-SHA256(kDate, Region)"]
+        KService["kService: HMAC-SHA256(kRegion, ses)"]
+        KSigning["kSigning: HMAC-SHA256(KService, aws4_request)"]
         KSecret --> KDate --> KRegion --> KService --> KSigning
     end
 
-    subgraph Step4["4. Signature & Authorization Header"]
+    subgraph Step4["4. Signature and Authorization Header"]
         CalcSig["Signature = Hex(HMAC-SHA256(kSigning, StringToSign))"]
-        AuthHeader["Authorization: AWS4-HMAC-SHA256\nCredential=AKIA.../20260919/us-east-1/ses/aws4_request,\nSignedHeaders=host;x-amz-date,\nSignature=fedcba..."]
+        AuthHeader["Authorization: AWS4-HMAC-SHA256<br/>Credential=Key/Scope, Signature=..."]
         STS & KSigning --> CalcSig --> AuthHeader
     end
 ```
@@ -554,13 +554,13 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    P1["1. Admission Control\n(Semaphore Token)"] --> P2["2. Context Isolation\n(Tenant Propagation)"]
-    P2 --> P3["3. SSRF Guard\n(DNS IP Validation)"]
-    P3 --> P4["4. Tenant Rate Limit\n(Token Bucket)"]
-    P4 --> P5["5. Singleflight\n(Coalescing In-Flight)"]
-    P5 --> P6["6. Cache Evaluation\n(Conditional RFC 7234)"]
-    P6 --> P7["7. Circuit Breaker\n(Fail-Fast Protection)"]
-    P7 --> P8["8. Network Dispatch\n(Exponential Jitter)"]
+    P1["1. Admission Control<br/>Semaphore Token"] --> P2["2. Context Isolation<br/>Tenant Propagation"]
+    P2 --> P3["3. SSRF Guard<br/>DNS IP Validation"]
+    P3 --> P4["4. Tenant Rate Limit<br/>Token Bucket"]
+    P4 --> P5["5. Singleflight<br/>Coalescing Requests"]
+    P5 --> P6["6. Cache Evaluation<br/>RFC 7234"]
+    P6 --> P7["7. Circuit Breaker<br/>Fail-Fast Protection"]
+    P7 --> P8["8. Network Dispatch<br/>Exponential Jitter"]
 ```
 
 ---
@@ -568,70 +568,53 @@ flowchart LR
 ## 🗄 6. Relational Database Schema & Migrations
 
 ```mermaid
-erDiagram
-    auth_organizations ||--o{ auth_users : "members"
-    auth_organizations ||--o{ auth_api_keys : "scopes"
-    auth_users ||--o{ auth_email_verifications : "verifications"
-    auth_users ||--o{ auth_audit_logs : "audit_records"
+flowchart TD
+    subgraph Organizations["auth_organizations"]
+        org_id["id (PK): varchar"]
+        org_name["name: varchar"]
+        org_slug["slug: varchar"]
+        org_created["created_at: timestamp"]
+    end
 
-    auth_organizations {
-        varchar id PK
-        varchar name
-        varchar slug
-        timestamp created_at
-        timestamp deleted_at
-    }
+    subgraph Users["auth_users"]
+        user_id["id (PK): varchar"]
+        user_org["org_id (FK): varchar"]
+        user_email["email: varchar"]
+        user_verified["email_verified: boolean"]
+        user_role["role: varchar"]
+        user_created["created_at: timestamp"]
+    end
 
-    auth_users {
-        varchar id PK
-        varchar org_id FK
-        varchar email
-        varchar password_hash
-        varchar name
-        varchar role
-        boolean blocked
-        boolean email_verified
-        jsonb user_permissions
-        timestamp created_at
-        timestamp deleted_at
-    }
+    subgraph ApiKeys["auth_api_keys"]
+        key_id["key_id (PK): varchar"]
+        key_org["org_id (FK): varchar"]
+        key_type["key_type: varchar"]
+        key_hash["key_hash (UK): varchar"]
+        key_expires["expires_at_ms: bigint"]
+        key_used["last_used_at_ms: bigint"]
+        key_ip["last_used_ip: varchar"]
+        key_revoked["revoked: boolean"]
+    end
 
-    auth_api_keys {
-        varchar key_id PK
-        varchar org_id FK
-        varchar key_type
-        varchar key_hash UK
-        varchar prefix
-        varchar name
-        jsonb permissions
-        bigint created_at_ms
-        boolean revoked
-        bigint expires_at_ms
-        bigint last_used_at_ms
-        varchar last_used_ip
-        timestamp deleted_at
-    }
+    subgraph EmailVerifications["auth_email_verifications"]
+        token_hash["token_hash (PK): varchar"]
+        verif_user["user_id (FK): varchar"]
+        verif_email["email: varchar"]
+        verif_expires["expires_at_ms: bigint"]
+        verif_used["used: boolean"]
+    end
 
-    auth_email_verifications {
-        varchar token_hash PK
-        varchar user_id FK
-        varchar email
-        bigint expires_at_ms
-        boolean used
-        timestamp created_at
-        timestamp deleted_at
-    }
+    subgraph AuditLogs["auth_audit_logs"]
+        audit_id["id (PK): varchar"]
+        audit_user["user_id (FK): varchar"]
+        audit_event["event_type: varchar"]
+        audit_time["timestamp_ms: bigint"]
+    end
 
-    auth_audit_logs {
-        varchar id PK
-        varchar user_id FK
-        varchar org_id FK
-        varchar event_type
-        varchar ip_address
-        varchar user_agent
-        bigint timestamp_ms
-        timestamp deleted_at
-    }
+    Organizations -->|"1 : N (members)"| Users
+    Organizations -->|"1 : N (scopes)"| ApiKeys
+    Users -->|"1 : N (verifications)"| EmailVerifications
+    Users -->|"1 : N (audit_records)"| AuditLogs
 ```
 
 ### Migration 0007: API Key Expiration & Usage Telemetry
@@ -676,10 +659,10 @@ Every operation is instrumented using OpenTelemetry spans. The span hierarchy li
 
 ```mermaid
 flowchart TD
-    Span1["Span: HTTP POST /api/v1/auth/api-keys/verify\n(http.method=POST, http.target=/api/v1/auth/api-keys/verify)"]
-    Span2["Span: ApiKeyDomainService.verifyApiKey\n(api_key.key_id=key_9x8y7z, api_key.type=super_secret)"]
-    Span3["Span: RedisCacheAdapter.get\n(redis.key=auth:revoked_api_key:key_9x8y7z)"]
-    Span4["Span: RealPostgresAuthAdapter.updateApiKeyUsage\n(db.operation=UPDATE, db.table=auth_api_keys)"]
+    Span1["Span 1: HTTP POST /api/v1/auth/api-keys/verify"]
+    Span2["Span 2: ApiKeyDomainService.verifyApiKey"]
+    Span3["Span 3: RedisCacheAdapter.get"]
+    Span4["Span 4: RealPostgresAuthAdapter.updateApiKeyUsage"]
 
     Span1 --> Span2
     Span2 --> Span3
