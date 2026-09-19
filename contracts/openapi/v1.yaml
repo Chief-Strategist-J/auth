@@ -600,6 +600,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/StandardApiResponse'
 
+  /api/v1/auth/verify-email:
+    post:
+      summary: Verify user email using single-use cryptographic token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email address verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardApiResponse'
+        '400':
+          description: Invalid or expired verification token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardApiErrorResponse'
+
+  /api/v1/auth/resend-verification:
+    post:
+      summary: Dispatch fresh email verification token to user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+      responses:
+        '200':
+          description: Verification email dispatched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardApiResponse'
+        '400':
+          description: Invalid email address or user already verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardApiErrorResponse'
+
   /api/v1/auth/api-keys:
     get:
       summary: List all API keys for the authenticated user's organization
@@ -613,7 +659,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/StandardApiResponse'
     post:
-      summary: Generate 3-tier API key bound to specific permission table
+      summary: Generate 3-tier API key bound to specific permission table with mandatory TTL for super_secret keys
       security:
         - BearerAuth: []
       requestBody:
@@ -624,15 +670,21 @@ paths:
               $ref: '#/components/schemas/CreateApiKeyRequest'
       responses:
         '201':
-          description: API key generated successfully
+          description: API key generated successfully with expiration and raw secret
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardApiResponse'
+        '400':
+          description: Validation failure (missing expires_at_ms on super_secret key or TTL exceeding 90 days)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardApiErrorResponse'
 
   /api/v1/auth/api-keys/verify:
     post:
-      summary: Verify API key validity and evaluate permission table entitlement
+      summary: Verify API key validity, evaluate permissions, enforce TTL expiration, and record usage telemetry
       requestBody:
         required: true
         content:
@@ -641,11 +693,17 @@ paths:
               $ref: '#/components/schemas/VerifyApiKeyRequest'
       responses:
         '200':
-          description: API key verified with permission evaluation
+          description: API key valid, unexpired, unrevoked, with permission evaluation and updated usage timestamp
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardApiResponse'
+        '401':
+          description: API key expired (API_KEY_EXPIRED) or revoked (API_KEY_REVOKED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardApiErrorResponse'
 
   /api/v1/auth/api-keys/{id}/revoke:
     post:
@@ -914,6 +972,10 @@ components:
           type: string
           enum: [general, testing, super_secret]
           default: general
+        expires_at_ms:
+          type: integer
+          format: int64
+          description: Expiration epoch timestamp in milliseconds. Mandatory for super_secret (ak_sec_) keys with maximum 90 days TTL. Optional for general and testing keys.
         permissions:
           type: array
           items:
@@ -927,3 +989,59 @@ components:
           type: string
         required_permission:
           type: string
+
+    VerifyEmailRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: Single-use cryptographic email verification token
+
+    ResendVerificationRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address to dispatch fresh verification token to
+
+    ApiKeyRecord:
+      type: object
+      required: [id, org_id, key_hash, key_prefix, key_type, name, permissions, created_at, status]
+      properties:
+        id:
+          type: string
+        org_id:
+          type: string
+        key_hash:
+          type: string
+        key_prefix:
+          type: string
+        key_type:
+          type: string
+          enum: [general, testing, super_secret]
+        name:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+        expires_at_ms:
+          type: integer
+          format: int64
+          nullable: true
+        last_used_at_ms:
+          type: integer
+          format: int64
+          nullable: true
+        last_used_ip:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, revoked]
+

@@ -28,6 +28,7 @@ import {
 import { handleVerifySession } from './handlers/session.handler';
 import { handleForgotPassword, handleResetPassword, handleChangePassword } from './handlers/password.handler';
 import { handleCreateApiKey, handleVerifyApiKey, handleListPermissions } from './handlers/api-key.handler';
+import { handleVerifyEmail, handleResendVerification } from './handlers/email-verification.handler';
 import { AUTH_ENDPOINTS, HTTP_METHODS } from '../../../shared/constants/endpoints';
 
 export interface RouteContext {
@@ -317,5 +318,19 @@ export const ROUTE_RULES: RouteRule[] = [
     requiresAuth: true,
     successMessage: 'Audit logs retrieved',
     handler: (ctx, session) => handleFetchAuditLogs(ctx.service, session.sub, ctx.queryParams),
+  },
+  {
+    name: 'verify_email',
+    method: HTTP_METHODS.POST,
+    pattern: AUTH_ENDPOINTS.VERIFY_EMAIL,
+    successMessage: 'Email verified successfully',
+    handler: (ctx) => handleVerifyEmail(ctx.service, ctx.body),
+  },
+  {
+    name: 'resend_verification',
+    method: HTTP_METHODS.POST,
+    pattern: AUTH_ENDPOINTS.RESEND_VERIFICATION,
+    successMessage: 'Verification email resent',
+    handler: (ctx) => handleResendVerification(ctx.service, ctx.body),
   },
 ];

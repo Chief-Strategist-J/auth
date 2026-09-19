@@ -76,11 +76,13 @@ export const CreateApiKeyInputSchema = z.object({
     AUTH_CONSTANTS.PERMISSION_METRICS_READ,
     AUTH_CONSTANTS.PERMISSION_LOGS_READ,
   ]),
+  expires_at_ms: z.number().positive().optional(),
 });
 
 export const VerifyApiKeyInputSchema = z.object({
   key: z.string().min(1, 'API key string is required'),
   required_permission: z.string().optional(),
+  client_ip: z.string().optional(),
 });
 
 export const UpdateUserProfileInputSchema = z.object({
@@ -133,6 +135,7 @@ export const AuthUserEntitySchema = z.object({
   role: UserRoleSchema,
   blocked: z.boolean().default(false),
   user_permissions: z.array(z.string()).default([]),
+  email_verified: z.boolean().default(false).optional(),
 });
 
 export const ApiKeyEntitySchema = z.object({
@@ -145,6 +148,17 @@ export const ApiKeyEntitySchema = z.object({
   permissions: z.array(z.string()),
   created_at_ms: z.number().int().positive(),
   revoked: z.boolean(),
+  expires_at_ms: z.number().int().positive().nullable().optional(),
+  last_used_at_ms: z.number().int().positive().nullable().optional(),
+  last_used_ip: z.string().nullable().optional(),
+});
+
+export const VerifyEmailInputSchema = z.object({
+  token: z.string().min(1, 'Verification token is required'),
+});
+
+export const ResendVerificationInputSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
 });
 
 export const AUTH_JSON_MAPPING = {

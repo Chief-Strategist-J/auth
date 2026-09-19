@@ -168,6 +168,7 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
         role: row.role,
         blocked: row.blocked,
         user_permissions: row.user_permissions ?? [],
+        email_verified: row.email_verified ?? false,
       }));
     } finally {
       client.release();
@@ -268,6 +269,7 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
           role: row.role,
           blocked: row.blocked,
           user_permissions: row.user_permissions ?? [],
+          email_verified: row.email_verified ?? false,
         };
       } finally {
         client.release();
@@ -291,6 +293,7 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
         role: row.role,
         blocked: row.blocked,
         user_permissions: row.user_permissions ?? [],
+        email_verified: row.email_verified ?? false,
       };
     } finally {
       client.release();
@@ -409,6 +412,7 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
         keyRecord.permissions,
         keyRecord.created_at_ms,
         keyRecord.revoked,
+        keyRecord.expires_at_ms ?? null,
       ]);
     } finally {
       client.release();
@@ -429,6 +433,9 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
         permissions: row.permissions,
         created_at_ms: parseInt(row.created_at_ms, 10),
         revoked: row.revoked,
+        expires_at_ms: row.expires_at_ms ? parseInt(row.expires_at_ms, 10) : null,
+        last_used_at_ms: row.last_used_at_ms ? parseInt(row.last_used_at_ms, 10) : null,
+        last_used_ip: row.last_used_ip ?? null,
       }));
     } finally {
       client.release();
@@ -451,6 +458,9 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
         permissions: row.permissions,
         created_at_ms: parseInt(row.created_at_ms, 10),
         revoked: row.revoked,
+        expires_at_ms: row.expires_at_ms ? parseInt(row.expires_at_ms, 10) : null,
+        last_used_at_ms: row.last_used_at_ms ? parseInt(row.last_used_at_ms, 10) : null,
+        last_used_ip: row.last_used_ip ?? null,
       };
     } finally {
       client.release();
@@ -461,6 +471,57 @@ export class RealPostgresAuthAdapter implements AuthRepositoryPort {
     const client = await this.pool.connect();
     try {
       await client.query(AUTH_QUERIES.FLOW_REVOKE_API_KEY.REVOKE_API_KEY_BY_ID, [keyId]);
+    } finally {
+      client.release();
+    }
+  }
+
+  async updateApiKeyUsage(keyId: string, lastUsedAtMs: number, lastUsedIp?: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(AUTH_QUERIES.FLOW_API_KEY_USAGE.UPDATE_USAGE, [lastUsedAtMs, lastUsedIp ?? null, keyId]);
+    } finally {
+      client.release();
+    }
+  }
+
+  async saveEmailVerificationToken(tokenHash: string, userId: string, email: string, expiresAtMs: number): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query(AUTH_QUERIES.FLOW_EMAIL_VERIFICATION.INSERT_TOKEN, [tokenHash, userId, email, expiresAtMs, false]);
+    } finally {
+      client.release();
+    }
+  }
+
+  async findEmailVerificationToken(tokenHash: string): Promise<{ tokenHash: string; userId: string; email: string; expiresAtMs: number; used: boolean } | null> {
+    const client = await this.pool.connect();
+    try {
+      const res = await client.query(AUTH_QUERIES.FLOW_EMAIL_VERIFICATION.FIND_TOKEN, [tokenHash]);
+      if (res.rows.length === 0) return null;
+      const row = res.rows[0];
+      return {
+        tokenHash: row.token_hash,
+        userId: row.user_id,
+        email: row.email,
+        expiresAtMs: parseInt(row.expires_at_ms, 10),
+        used: row.used,
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async markEmailVerified(tokenHash: string, userId: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(AUTH_QUERIES.FLOW_EMAIL_VERIFICATION.MARK_VERIFIED, [tokenHash]);
+      await client.query(AUTH_QUERIES.FLOW_EMAIL_VERIFICATION.SET_USER_EMAIL_VERIFIED, [userId]);
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
     } finally {
       client.release();
     }

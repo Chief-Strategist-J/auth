@@ -4,7 +4,8 @@
  *
  * OVERALL ALGORITHM:
  * 1. Forgot Password: Normalize email -> lookup user -> if absent return empty token (anti-enumeration) ->
- *    generate high-entropy reset token and cryptographic Argon2id hash -> persist token in repository with 1hr TTL.
+ *    generate high-entropy reset token and cryptographic Argon2id hash -> persist token in repository with 1hr TTL ->
+ *    dispatch password reset email via NotificationDomainService asynchronously.
  * 2. Reset Password: Validate schema -> hash presented token -> verify record existence, unused state, and validity window ->
  *    hash new password with Argon2id -> update user record -> mark reset token used.
  * 3. Change Password: Validate schema -> lookup authenticated user -> verify current password with Argon2id ->
@@ -13,13 +14,17 @@
 
 import type { AuthRepositoryPort } from '../repository';
 import type { ForgotPasswordInput, ResetPasswordInput, ChangePasswordInput } from '../types';
+import type { NotificationDomainService } from './notification.service';
 import { ResetPasswordInputSchema, ChangePasswordInputSchema } from '../schema/auth.schema';
 import { InvalidCredentialsError, ValidationError } from '../../../shared/errors/auth.errors';
 import { hashPassword, verifyPassword, hashApiKey } from '../../../shared/utils/argon2.util';
 import { normalizeString } from '../../../shared/utils/string.util';
 
 export class PasswordDomainService {
-  constructor(private readonly repo: AuthRepositoryPort) {}
+  constructor(
+    private readonly repo: AuthRepositoryPort,
+    private readonly notificationService?: NotificationDomainService,
+  ) {}
 
   async forgotPassword(input: ForgotPasswordInput): Promise<{ resetToken: string }> {
     const email = normalizeString(input.email, 'lower');
@@ -33,6 +38,13 @@ export class PasswordDomainService {
     const expiresAtMs = Date.now() + 3600000;
 
     await this.repo.savePasswordResetToken(tokenHash, user.id, expiresAtMs);
+
+    if (this.notificationService) {
+      Promise.resolve()
+        .then(() => this.notificationService!.sendPasswordResetEmail(email, user.name, rawToken))
+        .catch(() => {});
+    }
+
     return { resetToken: rawToken };
   }
 

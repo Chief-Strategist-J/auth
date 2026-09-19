@@ -1,3 +1,15 @@
+/**
+ * @file auth-openapi.test.ts
+ * @description Contract compliance verification asserting that OpenAPI v1.yaml synchronizes
+ * with endpoint constants, security schemas, API key expiration, and email verification.
+ *
+ * OVERALL ALGORITHM:
+ * 1. Resolve path to contracts/openapi/v1.yaml specification file.
+ * 2. Assert file existence and openapi version 3.0.3 compliance.
+ * 3. Verify presence of all declared REST endpoints matching AUTH_ENDPOINTS enum.
+ * 4. Verify presence of all security headers, error codes, and request/response schema definitions.
+ */
+
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -20,12 +32,19 @@ describe('Auth OpenAPI Contract Compliance', () => {
     expect(content).toContain(AUTH_ENDPOINTS.CHANGE_PASSWORD);
     expect(content).toContain(AUTH_ENDPOINTS.API_KEYS);
     expect(content).toContain(AUTH_ENDPOINTS.API_KEYS_VERIFY);
+    expect(content).toContain(AUTH_ENDPOINTS.VERIFY_EMAIL);
+    expect(content).toContain(AUTH_ENDPOINTS.RESEND_VERIFICATION);
     expect(content).toContain(AUTH_ENDPOINTS.PERMISSIONS);
     expect(content).toContain(AUTH_ENDPOINTS.AUDIT_LOGS);
     expect(content).toContain('SignUpRequest');
     expect(content).toContain('SignInRequest');
     expect(content).toContain('CreateApiKeyRequest');
     expect(content).toContain('VerifyApiKeyRequest');
+    expect(content).toContain('VerifyEmailRequest');
+    expect(content).toContain('ResendVerificationRequest');
+    expect(content).toContain('expires_at_ms');
+    expect(content).toContain('API_KEY_EXPIRED');
+    expect(content).toContain('API_KEY_REVOKED');
     expect(content).toContain('X-CSRF-Token');
     expect(content).toContain('ip_address');
     expect(content).toContain('ACCOUNT_LOCKED');

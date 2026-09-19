@@ -46,6 +46,12 @@ export class ApiKeyRevokedError extends AuthError {
   }
 }
 
+export class ApiKeyExpiredError extends AuthError {
+  constructor() {
+    super('API key has expired', 'API_KEY_EXPIRED', 401);
+  }
+}
+
 export class UserAlreadyExistsError extends AuthError {
   constructor(email: string) {
     super(`Email address already registered: ${email}`, 'USER_ALREADY_EXISTS', 409);

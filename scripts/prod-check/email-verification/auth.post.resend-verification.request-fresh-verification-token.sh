@@ -7,15 +7,9 @@ if [ -f "${CONFIG_PATH}" ]; then
   source "${CONFIG_PATH}"
 fi
 
-EXPIRES_PAYLOAD=""
-if [ -n "${EXPIRES_AT_MS:-}" ]; then
-  EXPIRES_PAYLOAD=", \"expires_at_ms\": ${EXPIRES_AT_MS}"
-fi
-
-echo "==> [api-keys] POST /api/v1/auth/api-keys -> Generate 3-Tier Scoped API Key"
-curl -s -X POST "${AUTH_URL}/api/v1/auth/api-keys" \
+echo "==> [email-verification] POST /api/v1/auth/resend-verification -> Request Fresh Verification Token"
+curl -s -X POST "${AUTH_URL}/api/v1/auth/resend-verification" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${TOKEN}" \
   -H "x-request-id: ${X_REQUEST_ID}" \
   -H "x-correlation-id: ${X_CORRELATION_ID}" \
   -H "x-tenant-id: ${X_TENANT_ID}" \
@@ -25,8 +19,5 @@ curl -s -X POST "${AUTH_URL}/api/v1/auth/api-keys" \
   -H "User-Agent: ${USER_AGENT}" \
   -H "X-CSRF-Token: ${X_CSRF_TOKEN}" \
   -d "{
-    \"org_id\": \"${TARGET_ORG_ID}\",
-    \"name\": \"${KEY_NAME}\",
-    \"key_type\": \"${KEY_TYPE}\",
-    \"permissions\": ${PERMISSIONS}${EXPIRES_PAYLOAD}
+    \"email\": \"${EMAIL}\"
   }" | jq . || true

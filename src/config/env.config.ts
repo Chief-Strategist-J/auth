@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadSecurityConfig, type RateLimitConfig, type SessionDenylistConfig, type SecurityLimitsConfig } from './security.config';
+import { loadMailerConfig, type MailerConfig, type SesMailerConfig, type SendgridMailerConfig, type SmtpMailerConfig, type MailerProvider } from './mailer.config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,8 +66,9 @@ export const AUTH_CONFIG = Object.freeze({
     secret: process.env.JWT_SECRET || 'super-secure-production-auth-jwt-secret-key-replace-in-env-file-minimum-32-chars!',
   },
   security: loadSecurityConfig(),
+  mailer: loadMailerConfig(),
 });
 
-export type { RateLimitConfig, SessionDenylistConfig, SecurityLimitsConfig };
+export type { RateLimitConfig, SessionDenylistConfig, SecurityLimitsConfig, MailerConfig, SesMailerConfig, SendgridMailerConfig, SmtpMailerConfig, MailerProvider };
 export const authEnv = AUTH_CONFIG;
 export default AUTH_CONFIG;

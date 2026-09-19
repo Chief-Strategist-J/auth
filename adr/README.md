@@ -18,5 +18,7 @@ This directory contains formal Architecture Decision Records (ADRs) and operatio
 | [**0008**](./0008-master-api-catalog-parameter-contracts-and-response-envelopes.md) | Master API Catalog, Parameter Contracts & Response Envelopes | Complete reference for all 34 endpoints, schemas, parameters, success/error envelopes, and live curl verification | Accepted |
 | [**0009**](./0009-docker-production-image-optimization-tree-shaking-and-v8-memory-tuning.md) | Docker Production Image Optimization, Tree-Shaking & V8 Memory Tuning | Multi-stage build, esbuild tree-shaking, node:26-alpine preservation, -99% app layer, 32MB RAM, and Docker Hub deployment | Accepted |
 | [**0010**](./0010-redis-jti-session-denylist-and-adaptive-login-rate-limiting.md) | Redis JTI Session Denylist & Adaptive Login Rate Limiting | Stateless JTI token revocation, O(1) Redis cache, sliding window IP rate limiting, account lockout | Accepted |
+| [**0011**](./0011-api-key-engine-ttl-revocation-and-transactional-mailer.md) | API Key Engine (TTL & Instant Revocation) & Transactional Mailer Subsystem | Ephemeral super_secret key TTL enforcement, Redis edge revocation denylist, MailerPort adapter-port pattern, ScalableHttpClient resilience, email verification | Accepted |
 | [**Troubleshooting Guide**](../docs/troubleshooting-and-grafana-guide.md) | Troubleshooting & Grafana Tempo Debugging Guide | TraceQL queries, Grafana setup, time-range filtering, error debugging & fixes | Active Guide |
+
 

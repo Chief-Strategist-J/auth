@@ -4,9 +4,11 @@
  *
  * OVERALL ALGORITHM:
  * 1. Initialize sub-domain services: OrganizationDomainService, UserManagementDomainService, UserAuthDomainService,
- *    PasswordDomainService, ApiKeyDomainService, and AuditLogDomainService.
+ *    PasswordDomainService, ApiKeyDomainService, AuditLogDomainService, and NotificationDomainService.
  * 2. Delegate incoming high-level operations to dedicated domain services using hexagonal port isolation.
- * 3. Forward optional infrastructure adapters (ICachePort, AuthEventProducer, custom declarative rules).
+ * 3. Forward optional infrastructure adapters (ICachePort, AuthEventProducer, MailerPort, custom declarative rules).
+ * 4. ApiKeyDomainService now receives ICachePort for instant revocation via Redis denylist.
+ * 5. NotificationDomainService coordinates MailerPort for transactional email delivery.
  */
 
 import type { AuthRepositoryPort, OrganizationRecord } from './repository';
@@ -32,6 +34,7 @@ import type {
 import type { ApiKeyRecord, AuthTokenPayload } from '../../shared/types/auth.types';
 import type { AuthEventProducer } from '../../shared/messaging/producers/auth-event.producer';
 import type { Rule } from '@chief-strategist-j/shared-infra/rules-engine';
+import type { MailerPort } from '../../shared/ports/mailer.port';
 
 import { OrganizationDomainService } from './services/organization.service';
 import { UserManagementDomainService } from './services/user-management.service';
@@ -39,6 +42,7 @@ import { UserAuthDomainService } from './services/user-auth.service';
 import { PasswordDomainService } from './services/password.service';
 import { ApiKeyDomainService } from './services/api-key.service';
 import { AuditLogDomainService } from './services/audit-log.service';
+import { NotificationDomainService, type NotificationConfig } from './services/notification.service';
 import type { ICachePort } from '../../shared/ports/cache.interface';
 import type { SecurityLimitsConfig } from '../../config/env.config';
 import { SessionDenylistService } from './services/session-denylist.service';
@@ -58,9 +62,15 @@ export class AuthService {
     cache?: ICachePort,
     securityConfig?: SecurityLimitsConfig,
     customSignInRules?: readonly Rule[],
+    mailer?: MailerPort,
+    notificationConfig?: NotificationConfig,
   ) {
+    const notificationService = mailer
+      ? new NotificationDomainService(mailer, notificationConfig ?? { from: 'noreply@auth.local' })
+      : undefined;
+
     this.orgService = new OrganizationDomainService(repo);
-    this.userService = new UserManagementDomainService(repo);
+    this.userService = new UserManagementDomainService(repo, notificationService);
     const denylistService = cache ? new SessionDenylistService(cache, securityConfig?.sessionDenylist) : undefined;
     const rateLimiterService = new LoginRateLimiterService(securityConfig?.rateLimit, cache);
     this.authService = new UserAuthDomainService(
@@ -69,9 +79,10 @@ export class AuthService {
       denylistService,
       rateLimiterService,
       customSignInRules,
+      notificationService,
     );
-    this.passwordService = new PasswordDomainService(repo);
-    this.apiKeyService = new ApiKeyDomainService(repo);
+    this.passwordService = new PasswordDomainService(repo, notificationService);
+    this.apiKeyService = new ApiKeyDomainService(repo, cache);
     this.auditLogService = new AuditLogDomainService(repo);
   }
 
@@ -189,6 +200,14 @@ export class AuthService {
 
   async revokeApiKey(keyId: string): Promise<void> {
     return this.apiKeyService.revokeApiKey(keyId);
+  }
+
+  async verifyEmail(token: string): Promise<void> {
+    return this.authService.verifyEmail(token);
+  }
+
+  async resendVerificationEmail(email: string): Promise<void> {
+    return this.authService.resendVerificationEmail(email);
   }
 
   async fetchUserAuditLogs(userId: string, filters?: AuditLogFilter): Promise<AuditLogRecord[]> {

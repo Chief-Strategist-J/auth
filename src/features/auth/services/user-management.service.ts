@@ -5,7 +5,8 @@
  * OVERALL ALGORITHM:
  * 1. User query & profile: Normalize user/org identifier and return user record or throw ValidationError.
  * 2. User invitation & provisioning: Normalize inputs -> check email uniqueness with early throw ->
- *    generate random temporary password and Argon2id hash -> persist user record in organization.
+ *    generate random temporary password and Argon2id hash -> persist user record in organization ->
+ *    dispatch invitation email via NotificationDomainService asynchronously.
  * 3. RBAC mutation: Validate inputs, update roles and granular permission arrays in repository.
  * 4. Account lifecycle: Expose administrative block, unblock, and soft-delete operations.
  */
@@ -30,9 +31,13 @@ import { UserAlreadyExistsError, ValidationError } from '../../../shared/errors/
 import { hashPassword } from '../../../shared/utils/argon2.util';
 import { AUTH_CONSTANTS } from '../../../shared/constants/auth.constants';
 import { normalizeString } from '../../../shared/utils/string.util';
+import type { NotificationDomainService } from './notification.service';
 
 export class UserManagementDomainService {
-  constructor(private readonly repo: AuthRepositoryPort) {}
+  constructor(
+    private readonly repo: AuthRepositoryPort,
+    private readonly notificationService?: NotificationDomainService,
+  ) {}
 
   async listUsers(orgId: string): Promise<AuthUserRecord[]> {
     const normalizedOrgId = normalizeString(orgId);
@@ -85,6 +90,13 @@ export class UserManagementDomainService {
     };
 
     await this.repo.createUser(userRecord);
+
+    if (this.notificationService) {
+      Promise.resolve()
+        .then(() => this.notificationService!.sendUserInviteEmail(email, validated.name, normalizedOrgName, tempPassword))
+        .catch(() => {});
+    }
+
     return userRecord;
   }
 

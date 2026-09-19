@@ -43,8 +43,13 @@ export TARGET_KEY_ID="${TARGET_KEY_ID:-${KEY_ID:-target-key-id}}"
 export KEY_NAME="${KEY_NAME:-Production Ingestion Key}"
 export KEY_TYPE="${KEY_TYPE:-general}"
 export EXPIRES_IN_DAYS="${EXPIRES_IN_DAYS:-30}"
+export EXPIRES_AT_MS="${EXPIRES_AT_MS:-$(( $(date +%s%3N) + EXPIRES_IN_DAYS * 86400000 ))}"
 export REQUIRED_PERMISSION="${REQUIRED_PERMISSION:-traces:read}"
 export PERMISSIONS="${PERMISSIONS:-[\"traces:read\",\"traces:write\"]}"
+
+export VERIFICATION_TOKEN="${VERIFICATION_TOKEN:-sample-verification-token}"
+export MAILER_PROVIDER="${MAILER_PROVIDER:-mock}"
+export MAILER_FROM="${MAILER_FROM:-noreply@auth.local}"
 
 export PAGE="${PAGE:-1}"
 export LIMIT="${LIMIT:-20}"

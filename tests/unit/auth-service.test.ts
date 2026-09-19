@@ -85,6 +85,7 @@ describe('AuthService (Unit Tests)', () => {
       name: 'Super Secret Key',
       key_type: AUTH_CONSTANTS.KEY_TYPE_SUPER_SECRET,
       permissions: [AUTH_CONSTANTS.PERMISSION_ADMIN_ALL],
+      expires_at_ms: Date.now() + 30 * 24 * 60 * 60 * 1000,
     });
 
     expect(secResult.rawKey.startsWith(AUTH_CONSTANTS.API_KEY_PREFIX_SUPER_SECRET)).toBe(true);

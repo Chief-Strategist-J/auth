@@ -217,7 +217,8 @@ echo "${GEN_KEY_RESP}"
 GEN_RAW_KEY=$(echo "${GEN_KEY_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.rawKey || '');")
 GEN_KEY_ID=$(echo "${GEN_KEY_RESP}" | node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(0, 'utf-8')); console.log(d.data?.keyRecord?.key_id || '');")
 
-echo -e "\n--- [29/34] POST /api/v1/auth/api-keys (Create Secret API Key) ---"
+echo -e "\n--- [29/37] POST /api/v1/auth/api-keys (Create Secret API Key with Mandatory TTL) ---"
+SEC_EXP_MS=$(( $(date +%s%3N) + 30 * 86400000 ))
 SEC_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys" \
   -H "Authorization: Bearer ${SWITCHED_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -225,11 +226,12 @@ SEC_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys" \
     \"name\": \"Super Secret Admin Key\",
     \"org_id\": \"${SEC_ORG_ID}\",
     \"key_type\": \"super_secret\",
-    \"permissions\": [\"traces:read\", \"metrics:read\", \"logs:read\"]
+    \"permissions\": [\"traces:read\", \"metrics:read\", \"logs:read\"],
+    \"expires_at_ms\": ${SEC_EXP_MS}
   }")
 echo "${SEC_KEY_RESP}"
 
-echo -e "\n--- [30/34] POST /api/v1/auth/api-keys/verify (Verify API Key) ---"
+echo -e "\n--- [30/37] POST /api/v1/auth/api-keys/verify (Verify Active API Key) ---"
 VERIFY_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys/verify" \
   -H "Content-Type: application/json" \
   -d "{
@@ -238,22 +240,47 @@ VERIFY_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys/verify" \
   }")
 echo "${VERIFY_KEY_RESP}"
 
-echo -e "\n--- [31/34] GET /api/v1/auth/api-keys (List Organization API Keys) ---"
+echo -e "\n--- [31/37] GET /api/v1/auth/api-keys (List Organization API Keys) ---"
 LIST_KEYS_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/api-keys" \
   -H "Authorization: Bearer ${SWITCHED_TOKEN}")
 echo "${LIST_KEYS_RESP}"
 
-echo -e "\n--- [32/34] POST /api/v1/auth/api-keys/:id/revoke (Revoke API Key) ---"
+echo -e "\n--- [32/37] POST /api/v1/auth/api-keys/:id/revoke (Revoke API Key) ---"
 REVOKE_KEY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys/${GEN_KEY_ID}/revoke" \
   -H "Authorization: Bearer ${SWITCHED_TOKEN}")
 echo "${REVOKE_KEY_RESP}"
 
-echo -e "\n--- [33/34] GET /api/v1/auth/audit-logs (Query Parameter Filtered Audit Logs) ---"
+echo -e "\n--- [33/37] POST /api/v1/auth/api-keys/verify (Verify Revoked Key Rejected) ---"
+REVOKED_VERIFY_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/api-keys/verify" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"key\": \"${GEN_RAW_KEY}\",
+    \"required_permission\": \"traces:read\"
+  }")
+echo "${REVOKED_VERIFY_RESP}"
+
+echo -e "\n--- [34/37] POST /api/v1/auth/resend-verification (Resend Email Verification) ---"
+RESEND_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/resend-verification" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"email\": \"${ADMIN_EMAIL}\"
+  }")
+echo "${RESEND_RESP}"
+
+echo -e "\n--- [35/37] POST /api/v1/auth/verify-email (Verify Email With Token) ---"
+VERIFY_EMAIL_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/verify-email" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"token\": \"sample_test_token_123\"
+  }")
+echo "${VERIFY_EMAIL_RESP}"
+
+echo -e "\n--- [36/37] GET /api/v1/auth/audit-logs (Query Parameter Filtered Audit Logs) ---"
 AUDIT_RESP=$(curl -s -X GET "${BASE_URL}/api/v1/auth/audit-logs?event_type=ORG_SWITCH" \
   -H "Authorization: Bearer ${SWITCHED_TOKEN}")
 echo "${AUDIT_RESP}"
 
-echo -e "\n--- [34/34] DELETE /api/v1/auth/organizations/:id (Soft-Delete Organization) ---"
+echo -e "\n--- [37/37] DELETE /api/v1/auth/organizations/:id (Soft-Delete Organization) ---"
 DEL_ORG_RESP=$(curl -s -X DELETE "${BASE_URL}/api/v1/auth/organizations/${SEC_ORG_ID}")
 echo "${DEL_ORG_RESP}"
 
@@ -263,5 +290,5 @@ SIGNOUT_RESP=$(curl -s -X POST "${BASE_URL}/api/v1/auth/sign-out" \
 echo "${SIGNOUT_RESP}"
 
 echo -e "\n=========================================================="
-echo " All 34 Auth Endpoints Executed and Verified Successfully! "
+echo " All 37 Auth Endpoints Executed and Verified Successfully! "
 echo "=========================================================="

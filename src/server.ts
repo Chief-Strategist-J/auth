@@ -9,6 +9,7 @@ import { RealPostgresAuthAdapter } from './infra/adapters/postgres/real-postgres
 import { RedisCacheAdapter } from './infra/adapters/redis/redis-cache.adapter';
 import { RealRedisCacheAdapter } from './infra/adapters/redis/real-redis-cache.adapter';
 import type { ICachePort } from './shared/ports/cache.interface';
+import { createMailer } from './infra/adapters/mailer/mailer.factory';
 
 import type { AuthRepositoryPort } from './features/auth/repository';
 import { AuthEventProducer } from './shared/messaging/producers/auth-event.producer';
@@ -51,7 +52,17 @@ export const cacheAdapter: ICachePort = isMockRedis
   ? new RedisCacheAdapter()
   : new RealRedisCacheAdapter(AUTH_CONFIG.redis.url);
 
-export const service = new AuthService(repositoryAdapter, authEventProducer, cacheAdapter, AUTH_CONFIG.security);
+const mailerAdapter = createMailer(AUTH_CONFIG.mailer);
+
+export const service = new AuthService(
+  repositoryAdapter,
+  authEventProducer,
+  cacheAdapter,
+  AUTH_CONFIG.security,
+  undefined,
+  mailerAdapter,
+  { from: AUTH_CONFIG.mailer.from, appName: 'LLM Observability', appUrl: process.env.APP_URL || 'http://localhost:3000' },
+);
 export const router = new AuthRestV1Router(service);
 
 const server = http.createServer((req, res) => {

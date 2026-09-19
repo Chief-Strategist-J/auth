@@ -35,6 +35,10 @@ export interface AuthRepositoryPort {
   listApiKeysByOrgId(orgId: string): Promise<ApiKeyRecord[]>;
   findApiKeyByHash(hash: string): Promise<ApiKeyRecord | null>;
   revokeApiKey(keyId: string): Promise<void>;
+  updateApiKeyUsage(keyId: string, lastUsedAtMs: number, lastUsedIp?: string): Promise<void>;
+  saveEmailVerificationToken(tokenHash: string, userId: string, email: string, expiresAtMs: number): Promise<void>;
+  findEmailVerificationToken(tokenHash: string): Promise<{ tokenHash: string; userId: string; email: string; expiresAtMs: number; used: boolean } | null>;
+  markEmailVerified(tokenHash: string, userId: string): Promise<void>;
   fetchUserAuditLogs(userId: string, filters?: { event_type?: string; from_ms?: number; to_ms?: number }): Promise<AuditLogRecord[]>;
   addTokenToDenylist(token: string, expiresAtMs: number): Promise<void>;
   isTokenDenylisted(token: string): Promise<boolean>;

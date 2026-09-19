@@ -42,5 +42,8 @@ export const ApiKeyRecordSchema = z.object({
   permissions: z.array(z.string()),
   created_at_ms: z.number().positive(),
   revoked: z.boolean(),
+  expires_at_ms: z.number().positive().nullable().optional(),
+  last_used_at_ms: z.number().positive().nullable().optional(),
+  last_used_ip: z.string().nullable().optional(),
 });
 export type ApiKeyRecord = z.infer<typeof ApiKeyRecordSchema>;

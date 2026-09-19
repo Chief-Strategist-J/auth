@@ -21,7 +21,7 @@ export const AUTH_QUERIES = {
     FIND_ORG_BY_ID: `SELECT id, name FROM auth_organizations WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
     INSERT_USER: `INSERT INTO auth_users (id, email, password_hash, name, org_id, org_name, role, user_permissions) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     INSERT_USER_ORG: `INSERT INTO auth_user_organizations (user_id, org_id, role) VALUES ($1, $2, $3) ON CONFLICT (user_id, org_id) DO NOTHING`,
-    LIST_BY_ORG: `SELECT id, email, password_hash, name, org_id, org_name, role, blocked, user_permissions FROM auth_users WHERE org_id = $1 AND deleted_at IS NULL`,
+    LIST_BY_ORG: `SELECT id, email, password_hash, name, org_id, org_name, role, blocked, user_permissions, email_verified FROM auth_users WHERE org_id = $1 AND deleted_at IS NULL`,
     UNBLOCK_USER: `UPDATE auth_users SET blocked = FALSE, blocked_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL`,
     UPDATE_PROFILE_NAME: `UPDATE auth_users SET name = $1 WHERE id = $2 AND deleted_at IS NULL`,
     UPDATE_ROLE: `UPDATE auth_users SET role = $1 WHERE id = $2 AND deleted_at IS NULL`,
@@ -48,11 +48,11 @@ export const AUTH_QUERIES = {
     INSERT_USER_ORG: `INSERT INTO auth_user_organizations (user_id, org_id, role) VALUES ($1, $2, $3) ON CONFLICT (user_id, org_id) DO NOTHING`,
   },
   FLOW_SIGN_IN: {
-    FIND_USER_BY_EMAIL: `SELECT id, email, password_hash, name, org_id, org_name, role, blocked, user_permissions FROM auth_users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+    FIND_USER_BY_EMAIL: `SELECT id, email, password_hash, name, org_id, org_name, role, blocked, user_permissions, email_verified FROM auth_users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
     RECORD_AUDIT_LOG: `INSERT INTO auth_audit_logs (id, user_id, org_id, event_type, ip_address, user_agent, timestamp_ms) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
   },
   FLOW_SESSION_VERIFY: {
-    FIND_USER_BY_ID: `SELECT id, email, password_hash, name, org_id, org_name, role, blocked, user_permissions FROM auth_users WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
+    FIND_USER_BY_ID: `SELECT id, email, password_hash, name, org_id, org_name, role, blocked, user_permissions, email_verified FROM auth_users WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
     ADD_TOKEN_DENYLIST: `INSERT INTO auth_token_denylist (token_hash, expires_at_ms) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
     CHECK_TOKEN_DENYLIST: `SELECT 1 FROM auth_token_denylist WHERE token_hash = $1 AND expires_at_ms > $2 LIMIT 1`,
   },
@@ -65,14 +65,23 @@ export const AUTH_QUERIES = {
     MARK_TOKEN_USED: `UPDATE auth_password_resets SET used = TRUE, updated_at = CURRENT_TIMESTAMP WHERE token_hash = $1 AND deleted_at IS NULL`,
   },
   FLOW_CREATE_API_KEY: {
-    INSERT_API_KEY: `INSERT INTO auth_api_keys (key_id, org_id, key_type, key_hash, prefix, name, permissions, created_at_ms, revoked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    LIST_BY_ORG: `SELECT key_id, org_id, key_type, key_hash, prefix, name, permissions, created_at_ms, revoked FROM auth_api_keys WHERE org_id = $1 AND deleted_at IS NULL`,
+    INSERT_API_KEY: `INSERT INTO auth_api_keys (key_id, org_id, key_type, key_hash, prefix, name, permissions, created_at_ms, revoked, expires_at_ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    LIST_BY_ORG: `SELECT key_id, org_id, key_type, key_hash, prefix, name, permissions, created_at_ms, revoked, expires_at_ms, last_used_at_ms, last_used_ip FROM auth_api_keys WHERE org_id = $1 AND deleted_at IS NULL`,
   },
   FLOW_VERIFY_API_KEY: {
-    FIND_API_KEY_BY_HASH: `SELECT key_id, org_id, key_type, key_hash, prefix, name, permissions, created_at_ms, revoked FROM auth_api_keys WHERE key_hash = $1 AND deleted_at IS NULL LIMIT 1`,
+    FIND_API_KEY_BY_HASH: `SELECT key_id, org_id, key_type, key_hash, prefix, name, permissions, created_at_ms, revoked, expires_at_ms, last_used_at_ms, last_used_ip FROM auth_api_keys WHERE key_hash = $1 AND deleted_at IS NULL LIMIT 1`,
   },
   FLOW_REVOKE_API_KEY: {
     REVOKE_API_KEY_BY_ID: `UPDATE auth_api_keys SET revoked = TRUE, updated_at = CURRENT_TIMESTAMP WHERE key_id = $1 AND deleted_at IS NULL`,
+  },
+  FLOW_API_KEY_USAGE: {
+    UPDATE_USAGE: `UPDATE auth_api_keys SET last_used_at_ms = $1, last_used_ip = $2, updated_at = CURRENT_TIMESTAMP WHERE key_id = $3 AND deleted_at IS NULL`,
+  },
+  FLOW_EMAIL_VERIFICATION: {
+    INSERT_TOKEN: `INSERT INTO auth_email_verifications (token_hash, user_id, email, expires_at_ms, used) VALUES ($1, $2, $3, $4, $5)`,
+    FIND_TOKEN: `SELECT token_hash, user_id, email, expires_at_ms, used FROM auth_email_verifications WHERE token_hash = $1 AND deleted_at IS NULL LIMIT 1`,
+    MARK_VERIFIED: `UPDATE auth_email_verifications SET used = TRUE, updated_at = CURRENT_TIMESTAMP WHERE token_hash = $1 AND deleted_at IS NULL`,
+    SET_USER_EMAIL_VERIFIED: `UPDATE auth_users SET email_verified = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL`,
   },
   FLOW_AUDIT_LOGS: {
     FETCH_LOGS_BY_USER: `SELECT id, user_id, org_id, event_type, ip_address, user_agent, timestamp_ms FROM auth_audit_logs WHERE user_id = $1 AND deleted_at IS NULL ORDER BY timestamp_ms DESC LIMIT 100`,

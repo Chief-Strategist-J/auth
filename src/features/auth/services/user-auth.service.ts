@@ -59,6 +59,8 @@ import {
   DEFAULT_SIGN_UP_ERROR_REGISTRY,
   type AuthErrorFactory,
 } from '../rules/auth.rules';
+import type { NotificationDomainService } from './notification.service';
+import { hashApiKey } from '../../../shared/utils/argon2.util';
 
 export class UserAuthDomainService {
   private readonly signInRules: readonly Rule[];
@@ -73,6 +75,7 @@ export class UserAuthDomainService {
     private readonly sessionDenylistService?: SessionDenylistService,
     private readonly rateLimiterService?: LoginRateLimiterService,
     customSignInRules: readonly Rule[] = [],
+    private readonly notificationService?: NotificationDomainService,
   ) {
     this.signInRules = Object.freeze([...DEFAULT_SIGN_IN_RULES, ...customSignInRules]);
     this.sessionValidationRules = DEFAULT_SESSION_VALIDATION_RULES;
@@ -139,6 +142,8 @@ export class UserAuthDomainService {
         orgId: userRecord.org_id,
       }),
     );
+
+    this.dispatchEmailVerificationAsync(userRecord.id, userRecord.email, userRecord.name);
 
     return { token, payload, user: userRecord };
   }
@@ -357,6 +362,39 @@ export class UserAuthDomainService {
   private safePublishEventAsync(publishFn: () => Promise<unknown> | undefined): void {
     this.executeAsync(async () => {
       await publishFn();
+    });
+  }
+
+  async verifyEmail(tokenValue: string): Promise<void> {
+    const normalizedToken = normalizeString(tokenValue);
+    const tokenHash = await hashApiKey(normalizedToken);
+    const record = await this.repo.findEmailVerificationToken(tokenHash);
+
+    if (!record || record.used || record.expiresAtMs < Date.now()) {
+      throw new ValidationError('Invalid or expired email verification token');
+    }
+
+    await this.repo.markEmailVerified(tokenHash, record.userId);
+  }
+
+  async resendVerificationEmail(email: string): Promise<void> {
+    const normalizedEmail = normalizeString(email, 'lower');
+    const user = await this.repo.findUserByEmail(normalizedEmail);
+    if (!user) return;
+
+    this.dispatchEmailVerificationAsync(user.id, user.email, user.name);
+  }
+
+  private dispatchEmailVerificationAsync(userId: string, email: string, name: string): void {
+    if (!this.notificationService) return;
+
+    this.executeAsync(async () => {
+      const rawToken = `evf_${Math.random().toString(36).substring(2, 15)}`;
+      const tokenHash = await hashApiKey(rawToken);
+      const expiresAtMs = Date.now() + 24 * 60 * 60 * 1000;
+
+      await this.repo.saveEmailVerificationToken(tokenHash, userId, email, expiresAtMs);
+      await this.notificationService!.sendEmailVerification(email, name, rawToken);
     });
   }
 }

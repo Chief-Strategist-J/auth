@@ -6,11 +6,12 @@ import { AUTH_QUERIES } from '../../../features/auth/queries/auth.queries';
 
 export class AlloyDBOmniAuthAdapter implements AuthRepositoryPort {
   private readonly mockOrgs = new Map<string, OrganizationRecord>();
-  private readonly mockUsers = new Map<string, AuthUserRecord & { deleted_at?: number }>();
+  private readonly mockUsers = new Map<string, AuthUserRecord & { deleted_at?: number; email_verified?: boolean }>();
   private readonly mockUserOrgs = new Map<string, Set<string>>();
   private readonly mockApiKeys = new Map<string, ApiKeyRecord & { deleted_at?: number }>();
   private readonly mockAuditLogs = new Map<string, AuditLogRecord & { deleted_at?: number }>();
   private readonly mockResets = new Map<string, { tokenHash: string; userId: string; expiresAtMs: number; used: boolean; deleted_at?: number }>();
+  private readonly mockEmailVerifications = new Map<string, { tokenHash: string; userId: string; email: string; expiresAtMs: number; used: boolean; deleted_at?: number }>();
   private readonly tokenDenylist = new Map<string, number>();
   public readonly queries = AUTH_QUERIES;
 
@@ -284,6 +285,37 @@ export class AlloyDBOmniAuthAdapter implements AuthRepositoryPort {
     for (const record of this.mockApiKeys.values()) {
       if (record.key_id === keyId && !record.deleted_at) {
         record.revoked = true;
+      }
+    }
+  }
+
+  async updateApiKeyUsage(keyId: string, lastUsedAtMs: number, lastUsedIp?: string): Promise<void> {
+    for (const record of this.mockApiKeys.values()) {
+      if (record.key_id === keyId && !record.deleted_at) {
+        record.last_used_at_ms = lastUsedAtMs;
+        record.last_used_ip = lastUsedIp ?? null;
+      }
+    }
+  }
+
+  async saveEmailVerificationToken(tokenHash: string, userId: string, email: string, expiresAtMs: number): Promise<void> {
+    this.mockEmailVerifications.set(tokenHash, { tokenHash, userId, email, expiresAtMs, used: false });
+  }
+
+  async findEmailVerificationToken(tokenHash: string): Promise<{ tokenHash: string; userId: string; email: string; expiresAtMs: number; used: boolean } | null> {
+    const record = this.mockEmailVerifications.get(tokenHash);
+    if (!record || record.deleted_at) return null;
+    return record;
+  }
+
+  async markEmailVerified(tokenHash: string, userId: string): Promise<void> {
+    const record = this.mockEmailVerifications.get(tokenHash);
+    if (record && !record.deleted_at) {
+      record.used = true;
+    }
+    for (const user of this.mockUsers.values()) {
+      if (user.id === userId && !user.deleted_at) {
+        user.email_verified = true;
       }
     }
   }
