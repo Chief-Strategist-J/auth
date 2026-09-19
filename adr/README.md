@@ -20,5 +20,7 @@ This directory contains formal Architecture Decision Records (ADRs) and operatio
 | [**0010**](./0010-redis-jti-session-denylist-and-adaptive-login-rate-limiting.md) | Redis JTI Session Denylist & Adaptive Login Rate Limiting | Stateless JTI token revocation, O(1) Redis cache, sliding window IP rate limiting, account lockout | Accepted |
 | [**0011**](./0011-api-key-engine-ttl-revocation-and-transactional-mailer.md) | API Key Engine (TTL & Instant Revocation) & Transactional Mailer Subsystem | Ephemeral super_secret key TTL enforcement, Redis edge revocation denylist, MailerPort adapter-port pattern, ScalableHttpClient resilience, email verification | Accepted |
 | [**Troubleshooting Guide**](../docs/troubleshooting-and-grafana-guide.md) | Troubleshooting & Grafana Tempo Debugging Guide | TraceQL queries, Grafana setup, time-range filtering, error debugging & fixes | Active Guide |
+| [**Staff & Principal Q&A Catalog**](./q&a/README.md) | Comprehensive 275+ Question Architectural Interview Catalog | 25+ in-depth technical questions & meta-questions per ADR covering all failure modes, trade-offs, and invariants | Active Catalog |
+
 
 
