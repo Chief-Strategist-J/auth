@@ -18,8 +18,9 @@
 | **Session Management** | Direct Redis $O(1)$ Denylist TTL (ADR 0004 Kill Switch) | ADR 0004 | ✅ **Completed** | v1.0-hotfix | **P0** |
 | **Security & Defense** | Login Rate Limiting (IP Lockout + Email CAPTCHA/Backoff) | RFC 6585 | ✅ **Completed** | v1.0-hotfix | **P0** |
 | **API Key Engine** | 3-Tier API Keys (`ak_gen_`, `ak_tst_`, `ak_sec_`) | Structured Prefixes | ✅ **Completed** | Production v1.0 | Core |
-| **API Key Engine** | Key Expiration (`expires_at_ms`) & Instant Revocation for `ak_sec_` | TTL Enforced | ⏳ **Pending** | v1.0-hotfix | **P0** |
-| **Notifications** | Transactional Mailer Adapter (SMTP / SES / SendGrid) | MIME RFC 2045 | ⏳ **Pending** | v1.0-hotfix | **P0** |
+| **API Key Engine** | Key Expiration (`expires_at_ms`) & Instant Revocation for `ak_sec_` | TTL Enforced | ✅ **Completed** | v1.1.0 / ADR 0011 | **P0** |
+| **Notifications** | Transactional Mailer Adapter (SMTP / SES / SendGrid / Mock) | MIME RFC 2045 | ✅ **Completed** | v1.1.0 / ADR 0011 | **P0** |
+| **Core Authentication** | Email Verification (Token Lifecycle & Atomic Confirmation) | Single-Use SHA-256 | ✅ **Completed** | v1.1.0 / ADR 0011 | **P0** |
 | **Core Authentication** | Email & Password Registration & Login (Argon2id) | RFC 9106 | ✅ **Completed** | Production v1.0 | Core |
 | **Security & Defense** | Step-Up Authentication for High-Value Actions (incl. Impersonation) | RFC 9470 | ⏳ **Pending** | v1.1 | **P1** |
 | **Core Authentication** | Multi-Factor Authentication (RFC 6238 TOTP + Hashed Recovery Codes) | RFC 6238 | ⏳ **Pending** | v1.1 | **P1** |
@@ -62,37 +63,36 @@
 
 ---
 
-## 🚨 2. Live Production Gaps (V1.0 Operational Risks)
+## 🚨 2. Live Production Gaps (V1.0 Operational Risks & Remediation Status)
 
-### 2.1 Missing Real-Time Token Revocation (ADR 0004 Redis Denylist)
-- **Current Live Reality**: Issued access JWTs have a default lifespan of **3,600 seconds (1 hour)** (`expiresInSeconds = 3600` in `jwt.util.ts`). While sign-out records revoked tokens in the PostgreSQL `auth_token_denylist` table, edge proxies (Traefik) and downstream microservices performing stateless JWT signature verification do not query Postgres on every request.
-- **Vulnerability**: If a JWT is exfiltrated, it cannot be revoked globally in real time; it remains active for up to 60 minutes.
-- **Remediation (P0)**:
-  - Connect sign-out and session revocation directly to Redis (`llmobs-redis-ledger:6379`).
-  - Store revoked tokens as Redis keys `auth:denylist:{token_hash}` with TTL set to the token's remaining lifetime.
-  - Expose a sub-millisecond edge verification endpoint `/api/v1/auth/verify-session` for Traefik ForwardAuth and gateway checks.
+### 2.1 Real-Time Token Revocation (ADR 0004 Redis Denylist)
+- **Status**: ✅ **Resolved (v1.0-hotfix / ADR 0004)**
+- **Remediation Delivered**:
+  - Connected sign-out and session revocation directly to Redis (`llmobs-redis-ledger:6379`).
+  - Stored revoked tokens as Redis keys `auth:denylist:{token_hash}` with TTL set to the token's remaining lifetime.
+  - Exposed sub-millisecond edge verification endpoint `/api/v1/auth/verify-session` for Traefik ForwardAuth and gateway checks.
 
-### 2.2 Unthrottled Login & Self-Inflicted DoS Remediation
-- **Current Live Reality**: The `POST /api/v1/auth/sign-in` endpoint currently has no rate limiting or lockout middleware.
-- **Architectural Risk**: Hard account lockout keyed on user email creates an instant self-inflicted Denial of Service (DoS): an attacker can lock any employee out of their account indefinitely by firing 5 automated failed logins with their email.
-- **Remediation (P0 Dual-Track Defense)**:
-  - **Email-Keyed Track (Anti-DoS)**: Failed attempts against a specific email trigger a Cloudflare Turnstile CAPTCHA challenge and progressive exponential delay (1s, 2s, 4s, 8s). **Never hard-lockout the account based on email alone.**
-  - **IP/Subnet-Keyed Track (Brute-Force Defense)**: Sliding-window token bucket in Redis tracks failed attempts per `/24` IP subnet. Exceeding 10 failed attempts across any accounts within 10 minutes returns `HTTP 429 Too Many Requests` (`Retry-After: 600`).
+### 2.2 Adaptive Login Rate Limiting & DoS Defense
+- **Status**: ✅ **Resolved (v1.0-hotfix / ADR 0010)**
+- **Remediation Delivered**:
+  - **Email-Keyed Track (Anti-DoS)**: Progressive delays and sliding-window failure checks without hard account lockouts based on email alone.
+  - **IP/Subnet-Keyed Track (Brute-Force Defense)**: Sliding-window token bucket in Redis tracking failed attempts per `/24` IP subnet returning `HTTP 429 Too Many Requests`.
 
-### 2.3 Unmanaged Secret-Tier API Keys (`ak_sec_`)
-- **Current Live Reality**: High-privilege API keys prefixed with `ak_sec_` currently do not enforce expiration dates, lack last-used telemetry, and do not support CIDR network constraints.
-- **Vulnerability**: A leaked secret-tier key has indefinite lifetime and zero usage visibility until discovered manually.
-- **Remediation (P0)**:
-  - Enforce non-null `expires_at_ms` (maximum 90 days for `ak_sec_` keys, requiring explicit renewal).
-  - Add instant key revocation endpoint: `POST /api/v1/auth/api-keys/:id/revoke`.
-  - Record `last_used_at_ms` and `last_used_ip` asynchronously on every key verification.
+### 2.3 Ephemeral Secret-Tier API Keys (`ak_sec_`) & Instant Revocation
+- **Status**: ✅ **Resolved (v1.1.0 / ADR 0011)**
+- **Remediation Delivered**:
+  - Enforced mandatory non-null `expires_at_ms` (maximum 90-day TTL) for `super_secret` (`ak_sec_`) API keys.
+  - Implemented dual-layer instant key revocation: database update `revoked = true` and edge cache `auth:revoked_api_key:{key_id}` with 90-day TTL.
+  - Added real-time usage telemetry recording `last_used_at_ms` and `last_used_ip` asynchronously on every key verification.
+  - Delivered migration `0007_add_api_key_expiration_and_usage.sql`.
 
-### 2.4 Missing Account Recovery & Verification Path
-- **Current Live Reality**: The database records user invite tokens and password reset tokens, but no transactional mailer adapter is wired.
-- **Vulnerability**: Users who register cannot verify their email address, and users who forget passwords are permanently locked out without administrator database intervention.
-- **Remediation (P0)**:
-  - Implement the transactional mailer interface with SMTP / AWS SES transport.
-  - Wire transactional emails for `/verify-email`, `/reset-password`, and `/invite`.
+### 2.4 Transactional Mailer Subsystem & Email Verification
+- **Status**: ✅ **Resolved (v1.1.0 / ADR 0011)**
+- **Remediation Delivered**:
+  - Implemented provider-agnostic `MailerPort` with Mock, SMTP (RFC 5321 / STARTTLS), AWS SES (native SigV4 signed REST), and SendGrid (Bearer token REST) adapters.
+  - Enforced fail-fast envelope validation and decoupled endpoint configuration (`src/config/mailer.config.ts`).
+  - Integrated `@chief-strategist-j/shared-infra/http` (`ScalableHttpClient`) for circuit breaking, retries, and rate limiting.
+  - Added email verification endpoints (`POST /api/v1/auth/verify-email`, `POST /api/v1/auth/resend-verification`) backed by migration `0008_create_email_verifications_table.sql` and atomic SQL transactions.
 
 ---
 
@@ -309,6 +309,16 @@
 
 ## 🛠 5. Compliance & Operational Sequencing
 
+- [x] **API Key Expiration & Instant Edge Revocation (Delivered in v1.1.0 / ADR 0011)**:
+  - Enforced 90-day maximum TTL for `super_secret` API keys (`ak_sec_`).
+  - Added Redis edge revocation denylist (`auth:revoked_api_key:{key_id}`) and database `revoked = true`.
+  - Delivered telemetry tracking for `last_used_at_ms` and `last_used_ip`.
+- [x] **Transactional Mailer Adapters & Email Verification Flow (Delivered in v1.1.0 / ADR 0011)**:
+  - Hexagonal `MailerPort` with Mock, SMTP (RFC 5321 / STARTTLS), AWS SES (SigV4 signed REST), and SendGrid adapters.
+  - Endpoints `POST /api/v1/auth/verify-email` and `POST /api/v1/auth/resend-verification`.
+  - RFC 2045 multipart/alternative MIME message construction and decoupled configuration (`mailer.config.ts`).
+- [x] **Host DX TypeScript Binary Linkage**:
+  - TypeScript binary linked in local `node_modules/.bin` so `npm run typecheck` executes natively outside containers.
 - [ ] **Automated 30-Day Cascade Soft-Delete Purge Cron Worker (Promoted to P1 / v1.1)**:
   - Eliminates the compliance timeline gap between soft-delete marking and physical record purging.
   - Runs nightly: hard-deletes user records and cascading dependencies where `deleted_at_ms < (now - 30 days)`.
@@ -316,8 +326,6 @@
   - Endpoint `GET /api/v1/auth/users/me/export` returning machine-readable JSON data archive satisfying GDPR Article 15 compliance.
 - [ ] **Automated Database Seeder (`database/seeds/seed.ts`)**:
   - `npm run db:seed`: Populates standard local development fixtures (Default Organization, Admin, Viewer, pre-seeded API keys).
-- [ ] **Host DX TypeScript Binary Linkage**:
-  - Ensure `typescript` binary is linked in local `node_modules/.bin` so `npm run typecheck` executes natively outside containers.
 - [ ] **Prometheus Alert Rules for Authentication**:
   - High Failure Rate: Trigger alert if sign-in failure rate exceeds 5% over 5 minutes.
   - Brute Force Spikes: Alert if lockout events exceed 10 per minute.
