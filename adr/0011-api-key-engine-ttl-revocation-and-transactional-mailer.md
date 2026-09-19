@@ -88,18 +88,18 @@ flowchart TD
         SMTPServer["Enterprise SMTP Server"]
     end
 
-    ClientLayer -->|HTTPS / REST| APIGateway
+    ClientLayer -->|"HTTPS / REST"| APIGateway
     APIGateway --> RateLimiterMW
     RateLimiterMW --> RestRouter
 
     RestRouter --> ApiKeyService
     RestRouter --> UserAuthService
 
-    ApiKeyService -->|Store Key & Update Telemetry| PostgresRepo
-    ApiKeyService -->|Push Revocation Cache O(1)| RedisCache
+    ApiKeyService -->|"Store Key & Update Telemetry"| PostgresRepo
+    ApiKeyService -->|"Push Revocation Cache O(1)"| RedisCache
     ApiKeyService --> Tracer
 
-    UserAuthService -->|Persist Users & Tokens| PostgresRepo
+    UserAuthService -->|"Persist Users & Tokens"| PostgresRepo
     UserAuthService --> NotificationService
 
     NotificationService --> MailerFactory
@@ -112,9 +112,9 @@ flowchart TD
     SendGrid --> BaseRest
     BaseRest --> HttpClient
 
-    HttpClient -->|HTTPS SigV4| AWSSES
-    HttpClient -->|HTTPS Bearer| SendGridAPI
-    SMTP -->|Raw Socket TLS| SMTPServer
+    HttpClient -->|"HTTPS SigV4"| AWSSES
+    HttpClient -->|"HTTPS Bearer"| SendGridAPI
+    SMTP -->|"Raw Socket TLS"| SMTPServer
 ```
 
 ---
@@ -425,8 +425,8 @@ sequenceDiagram
         Client->>Server: RCPT TO:<recipient@domain.com>
         Server-->>Client: 250 2.1.5 Ok
         Client->>Server: DATA
-        Server-->>Client: 354 End data with <CR><LF>.<CR><LF>
-        Client->>Server: RFC 2045 Multipart/Alternative Payload\r\n.\r\n
+        Server-->>Client: 354 End data with CRLF.CRLF
+        Client->>Server: RFC 2045 Multipart/Alternative Payload
         Server-->>Client: 250 2.0.0 Ok: queued as 4X8Z910
         Client->>Server: QUIT
         Server-->>Client: 221 2.0.0 Bye
@@ -441,7 +441,7 @@ sequenceDiagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Active : generateApiKey() [Mandatory TTL: <= 90 days]
+    [*] --> Active : generateApiKey with TTL <= 90 days
     
     state Active {
         [*] --> Idle
@@ -449,11 +449,11 @@ stateDiagram-v2
         Verified --> Idle : Update Telemetry (last_used_at_ms, ip)
     }
 
-    Active --> Revoked : POST /api/keys/:id/revoke\n[Set DB revoked=true + Push Redis Denylist]
-    Active --> Expired : now > expires_at_ms\n[Enforced at Verification Time]
+    Active --> Revoked : POST /api/keys/id/revoke (DB and Redis Denylist)
+    Active --> Expired : now > expires_at_ms (TTL Exceeded)
 
-    Revoked --> [*] : HTTP 401 (API_KEY_REVOKED)
-    Expired --> [*] : HTTP 401 (API_KEY_EXPIRED)
+    Revoked --> [*] : HTTP 401 API_KEY_REVOKED
+    Expired --> [*] : HTTP 401 API_KEY_EXPIRED
 ```
 
 ---
@@ -462,11 +462,11 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Issued : signUp() / resendVerification() [Generate evf_..., SHA-256, 24h TTL]
+    [*] --> Issued : signUp or resendVerification (24h TTL)
     
-    Issued --> Consumed : POST /verify-email\n[Atomic Transaction: used=true, auth_users.email_verified=true]
+    Issued --> Consumed : POST /verify-email (Atomic Transaction)
     Issued --> Expired : now > expires_at_ms (24h Window)
-    Issued --> Superseded : POST /resend-verification\n[New Token Issued]
+    Issued --> Superseded : POST /resend-verification (New Token Issued)
 
     Consumed --> [*] : Verified State Confirmed
     Expired --> [*] : Rejection HTTP 400
